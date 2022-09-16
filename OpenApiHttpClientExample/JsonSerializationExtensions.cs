@@ -1,0 +1,29 @@
+using Newtonsoft.Json;
+using Newtonsoft.Json.Serialization;
+
+namespace OpenApiHttpClientExample;
+
+
+public static class JsonSerializationExtensions
+{
+    private static readonly SnakeCaseNamingStrategy _snakeCaseNamingStrategy
+        = new SnakeCaseNamingStrategy();
+
+    private static readonly JsonSerializerSettings _snakeCaseSettings = new JsonSerializerSettings
+    {
+        ContractResolver = new DefaultContractResolver
+        {
+            NamingStrategy = _snakeCaseNamingStrategy
+        }
+    };
+
+    public static string ToSnakeCase(this string @string)
+    {
+        if (@string == null)
+        {
+            throw new ArgumentNullException(paramName: nameof(@string));
+        }
+
+        return _snakeCaseNamingStrategy.GetPropertyName(@string, false);
+    }
+}
