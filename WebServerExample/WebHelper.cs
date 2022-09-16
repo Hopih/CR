@@ -12,12 +12,12 @@ public static class WebHelper
     public static async Task ShowWeatherApi(HttpListenerContext httpListenerContext)
     {
         var weatherApi = new OpenWeatherHttpClient();
-        var weather = weatherApi.GetWeatherDataByCity("Kazan");
+        var weather = await weatherApi.GetWeatherDataByCity("Kazan");
         if (weather != null)
         {
+            httpListenerContext.Response.StatusCode = 200;
             httpListenerContext.Response.ContentType = "application/json";
             await httpListenerContext.Response.OutputStream.WriteAsync(Encoding.UTF8.GetBytes(weather));
-            httpListenerContext.Response.StatusCode = 200;
         }
         else
         {
@@ -26,6 +26,7 @@ public static class WebHelper
             await httpListenerContext.Response.OutputStream.WriteAsync(Encoding.UTF8.GetBytes("Искомых данных о погоде нет!"));
         }
     }
+    
     [Mapping("user","POST")]
     public static async Task ShowUserGuid(HttpListenerContext httpListenerContext)
     {
@@ -46,12 +47,11 @@ public static class WebHelper
                 return;
             }
         }
-        
         httpListenerContext.Response.StatusCode = 500;
         httpListenerContext.Response.ContentType = "text/plain; charset=utf-8";
         httpListenerContext.Response.OutputStream.Write(Encoding.UTF8.GetBytes("Передача данных на сервер не удалась!"));
-        
     }
+    
     [Mapping("*","*")]
     public static async Task ShowStatic(HttpListenerContext context)
     {
@@ -96,8 +96,6 @@ public static class WebHelper
 
     private static async Task ShowFile(string path, HttpListenerContext context)
     {
-        var file = await File.ReadAllBytesAsync(path);
-        await context.Response.OutputStream.WriteAsync(file);
         context.Response.StatusCode = 200;
         context.Response.ContentType = Path.GetExtension(path) switch
         {
@@ -106,7 +104,7 @@ public static class WebHelper
             ".html" => "text/html",
             _ => "text/plain"
         };
+        var file = await File.ReadAllBytesAsync(path);
+        await context.Response.OutputStream.WriteAsync(file);
     }
-    
-    
 }

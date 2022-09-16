@@ -204,7 +204,7 @@
             contentType: 'application/json',
             success: function (data) {
                 if(data != null){
-                    $("#temp").text("Данные о погоде: температура -" +(data['main']['temp'] - 273.15).toFixed(2)).append(" градусов по цельсию")
+                    $("#temp").text("Данные о погоде: температура - " +(data['main']['temp'] - 273.15).toFixed(2)).append(" градусов по цельсию")
                 }
                 else{
                     $("#temp").text("Данные о погоде: Данные не найдены")
