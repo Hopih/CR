@@ -192,6 +192,15 @@
                 userForm.trigger("reset");
                 
                 sendForm.prop('disabled',false);
+            },
+            error: function (jqXHR, exception) {
+                if(jqXHR.status === 400){
+                    resultMessage.text("Данные о пользователе не сохранены. Информация об ошибках! " + jqXHR.responseText);
+                }
+                else{
+                    resultMessage.text("Произошла неизвестная ошибка! " + jqXHR.responseText);
+                }
+                sendForm.prop('disabled',false);
             }
         });
     });

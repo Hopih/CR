@@ -28,13 +28,21 @@ public static class WebHelper
     }
     
     [Mapping("user","POST")]
-    public static async Task ShowUserGuid(HttpListenerContext httpListenerContext)
+    public static async Task SaveUser(HttpListenerContext httpListenerContext)
     {
         using var sr = new StreamReader(httpListenerContext.Request.InputStream);
 
         var user = JsonConvert.DeserializeObject<User>(await sr.ReadToEndAsync());
         if (user != null)
         {
+            var validateResult = ValidationHelper.ValidateModel(user);
+            if (validateResult != null)
+            {
+                httpListenerContext.Response.StatusCode = 400;
+                httpListenerContext.Response.ContentType = "application/json";
+                await httpListenerContext.Response.OutputStream.WriteAsync(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(validateResult)));
+                return;
+            }
             var dbContext = new DatabaseContext("localhost\\SQLEXPRESS", "MySiteExampleDb");
             var result = await dbContext.AddUser(user);
 

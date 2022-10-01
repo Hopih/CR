@@ -1,3 +1,4 @@
+using System.Data;
 using Microsoft.Data.SqlClient;
 using WebServerExample.Models;
 
@@ -16,7 +17,14 @@ public class DatabaseContext
     {
         var id = Guid.NewGuid();
         var sqlExpression =
-            $"INSERT INTO Users (Id, Email, Mobile, Description) VALUES ('{id}','{user.Email}','{user.Mobile}','{user.Description}')";
+            $@"INSERT INTO Users 
+            (Id, Email, Mobile, Description) 
+            VALUES (
+                    '{id}',
+                    '{user.Email}',
+                    '{user.Mobile}',
+                    '{user.Description}'
+                    )";
 
         await using var connection = new SqlConnection(_connectionString);
         try
@@ -35,5 +43,41 @@ public class DatabaseContext
             await connection.CloseAsync();
         }
         return null;
-    } 
+    }
+
+    public async Task<User> GetUser(Guid id)
+    {
+        var sqlExpression = $@"Select * from Users where Id = '{id}'";
+        
+        await using var connection = new SqlConnection(_connectionString);
+        try
+        {
+            await connection.OpenAsync();
+            /*
+            await using var command2 = new SqlCommand();
+            command2.Parameters.Add(new SqlParameter("id", SqlDbType.UniqueIdentifier){Value = id});
+            command2.CommandType = CommandType.StoredProcedure;
+            command2.Connection = connection;
+            var resultStorage = await command2.ExecuteReaderAsync();
+            */
+            await using var command = new SqlCommand(sqlExpression, connection);
+            var result = await command.ExecuteReaderAsync();
+            if (result is { HasRows: true })
+            {
+                return new User
+                {
+                    Id = result.GetGuid("Id"),
+                    Description = result.GetString("Description"),
+                    Email = result.GetString("Email"),
+                    Mobile = result.GetString("Mobile")
+                };
+            }
+        }
+        finally
+        {
+            await connection.CloseAsync();
+        }
+
+        return null;
+    }
 }
