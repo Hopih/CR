@@ -1,14 +1,18 @@
 using System.Net;
 using System.Text;
+using CacheExample;
 using Newtonsoft.Json;
 using OpenApiHttpClientExample;
+using StackExchange.Redis;
 using WebServerExample.Models;
 
 namespace WebServerExample;
 
 public static class WebHelper
 {
-    [Mapping("weather","GET")]
+    static readonly DatabaseContext _dbContext = new ("localhost\\SQLEXPRESS", "MySiteExampleDb");
+    
+    [Mapping("weather","GET", "user")]
     public static async Task ShowWeatherApi(HttpListenerContext httpListenerContext)
     {
         var weatherApi = new OpenWeatherHttpClient();
@@ -35,16 +39,7 @@ public static class WebHelper
         var user = JsonConvert.DeserializeObject<User>(await sr.ReadToEndAsync());
         if (user != null)
         {
-            var validateResult = ValidationHelper.ValidateModel(user);
-            if (validateResult != null)
-            {
-                httpListenerContext.Response.StatusCode = 400;
-                httpListenerContext.Response.ContentType = "application/json";
-                await httpListenerContext.Response.OutputStream.WriteAsync(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(validateResult)));
-                return;
-            }
-            var dbContext = new DatabaseContext("localhost\\SQLEXPRESS", "MySiteExampleDb");
-            var result = await dbContext.AddUser(user);
+            var result = await _dbContext.AddUser(user);
 
             if (result != null)
             {
@@ -58,6 +53,33 @@ public static class WebHelper
         httpListenerContext.Response.StatusCode = 500;
         httpListenerContext.Response.ContentType = "text/plain; charset=utf-8";
         httpListenerContext.Response.OutputStream.Write(Encoding.UTF8.GetBytes("Передача данных на сервер не удалась!"));
+    }
+
+    [Mapping("signin", "POST")]
+    public static async Task Login(HttpListenerContext context)
+    {
+        using var sr = new StreamReader(context.Request.InputStream);
+
+        var loginModel = JsonConvert.DeserializeObject<LoginModel>(await sr.ReadToEndAsync());
+        var user = await _dbContext.GetUser(loginModel);
+        if (user != null)
+        {
+            var sessionId = BCrypt.Net.BCrypt.HashPassword(user.Password + "salt");
+            
+            await RedisStore.RedisCache.SetAddAsync(new RedisKey(sessionId), new RedisValue(user.Id.ToString()));
+            context.Response.Cookies.Add(new Cookie
+            {
+                Name = user.Email,
+                Value = sessionId,
+                Expires = DateTime.UtcNow.AddMinutes(30d)
+            });
+            await ShowFile(@"public\index.html",context);
+            return;
+        }
+        
+        context.Response.ContentType = "text/plain; charset=utf-8";
+        context.Response.StatusCode = 401;
+        await context.Response.OutputStream.WriteAsync(Encoding.UTF8.GetBytes("Данный пользователь не найден!"));
     }
     
     [Mapping("*","*")]
@@ -100,6 +122,18 @@ public static class WebHelper
     public static async Task ShowIndex(HttpListenerContext context)
     {
         await ShowFile(@"public\index.html",context);
+    }
+    
+    [Mapping("signup","GET")]
+    public static async Task ShowSignUp(HttpListenerContext context)
+    {
+        await ShowFile(@"public\signup.html",context);
+    }
+    
+    [Mapping("login","GET")]
+    public static async Task ShowLogin(HttpListenerContext context)
+    {
+        await ShowFile(@"public\login.html",context);
     }
 
     private static async Task ShowFile(string path, HttpListenerContext context)

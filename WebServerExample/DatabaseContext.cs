@@ -1,4 +1,5 @@
 using System.Data;
+using Dapper;
 using Microsoft.Data.SqlClient;
 using WebServerExample.Models;
 
@@ -15,16 +16,16 @@ public class DatabaseContext
    
     public async Task<User> AddUser(User user)
     {
+        user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
         var id = Guid.NewGuid();
         var sqlExpression =
-            $@"INSERT INTO Users 
-            (Id, Email, Mobile, Description) 
-            VALUES (
-                    '{id}',
-                    '{user.Email}',
-                    '{user.Mobile}',
-                    '{user.Description}'
-                    )";
+            $@"INSERT INTO Users (Id, Email, Mobile, Description, Password) VALUES 
+            (
+             '{id}',
+             '{user.Email}'
+             ,'{user.Mobile}'
+             ,'{user.Description}'
+             ,'{user.Password}')";
 
         await using var connection = new SqlConnection(_connectionString);
         try
@@ -45,39 +46,14 @@ public class DatabaseContext
         return null;
     }
 
-    public async Task<User> GetUser(Guid id)
+    public async Task<User> GetUser(LoginModel loginModel)
     {
-        var sqlExpression = $@"Select * from Users where Id = '{id}'";
-        
-        await using var connection = new SqlConnection(_connectionString);
-        try
-        {
-            await connection.OpenAsync();
-            /*
-            await using var command2 = new SqlCommand();
-            command2.Parameters.Add(new SqlParameter("id", SqlDbType.UniqueIdentifier){Value = id});
-            command2.CommandType = CommandType.StoredProcedure;
-            command2.Connection = connection;
-            var resultStorage = await command2.ExecuteReaderAsync();
-            */
-            await using var command = new SqlCommand(sqlExpression, connection);
-            var result = await command.ExecuteReaderAsync();
-            if (result is { HasRows: true })
-            {
-                return new User
-                {
-                    Id = result.GetGuid("Id"),
-                    Description = result.GetString("Description"),
-                    Email = result.GetString("Email"),
-                    Mobile = result.GetString("Mobile")
-                };
-            }
-        }
-        finally
-        {
-            await connection.CloseAsync();
-        }
+        var sqlExpression = $@"select * from users where Email = '{loginModel.Email}'";
+        using IDbConnection db = new SqlConnection(_connectionString);
+        var user = await db.QueryFirstOrDefaultAsync<User>(sqlExpression);
 
-        return null;
+        return user != null && BCrypt.Net.BCrypt.Verify(loginModel.Password, user.Password) 
+            ? user 
+            : null;
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using CacheExample;
 using WebServerExample;
 
 
@@ -12,6 +13,7 @@ var defaultMethod = methods.First(x =>
     return x.GetCustomAttributes(true).Any(y => y is Mapping { Method: "*", Route: "*" });
 });
 
+var store = RedisStore.RedisCache;
 
 httpListener.Start();
 while (httpListener.IsListening)
@@ -20,6 +22,7 @@ while (httpListener.IsListening)
     var response = context.Response;
     _ = Task.Run(async () =>
     {
+        
         var routeName = context.Request.Url?.Segments[1].Replace("/", "");
         
         var method = methods.FirstOrDefault(x =>
