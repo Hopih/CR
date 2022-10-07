@@ -50,10 +50,19 @@ public class DatabaseContext
     {
         var sqlExpression = $@"select * from users where Email = '{loginModel.Email}'";
         using IDbConnection db = new SqlConnection(_connectionString);
-        var user = await db.QueryFirstOrDefaultAsync<User>(sqlExpression);
+        var user = await db.QuerySingleOrDefaultAsync<User>(sqlExpression);
 
         return user != null && BCrypt.Net.BCrypt.Verify(loginModel.Password, user.Password) 
             ? user 
             : null;
+    }
+    
+    public async Task<User> GetUserById(string id)
+    {
+        var sqlExpression = $@"select * from users where Id = '{id.ToUpper()}'";
+        using IDbConnection db = new SqlConnection(_connectionString);
+        var user = await db.QuerySingleOrDefaultAsync<User>(sqlExpression);
+
+        return user;
     }
 }

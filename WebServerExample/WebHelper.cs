@@ -15,20 +15,35 @@ public static class WebHelper
     [Mapping("weather","GET", "user")]
     public static async Task ShowWeatherApi(HttpListenerContext httpListenerContext)
     {
-        var weatherApi = new OpenWeatherHttpClient();
-        var weather = await weatherApi.GetWeatherDataByCity("Kazan");
-        if (weather != null)
+        var sessionId = httpListenerContext.Request.Cookies["session-id"];
+        if (sessionId != null)
         {
-            httpListenerContext.Response.StatusCode = 200;
-            httpListenerContext.Response.ContentType = "application/json";
-            await httpListenerContext.Response.OutputStream.WriteAsync(Encoding.UTF8.GetBytes(weather));
+            var userId = RedisStore.RedisCache.StringGet(sessionId.Value);
+            if (userId.HasValue)
+            {
+                //тут можно например счетчик вести для данного пользователя. Нас попросили просто вывести данные 
+                var weatherApi = new OpenWeatherHttpClient();
+                var weather = await weatherApi.GetWeatherDataByCity("Kazan");
+                if (weather != null)
+                {
+                    httpListenerContext.Response.StatusCode = 200;
+                    httpListenerContext.Response.ContentType = "application/json";
+                    await httpListenerContext.Response.OutputStream.WriteAsync(Encoding.UTF8.GetBytes(weather));
+                }
+                else
+                {
+                    httpListenerContext.Response.StatusCode = 500;
+                    httpListenerContext.Response.ContentType = "text/plain; charset=utf-8";
+                    await httpListenerContext.Response.OutputStream.WriteAsync(Encoding.UTF8.GetBytes("Искомых данных о погоде нет!"));
+                }
+
+                sessionId.Expires = DateTime.UtcNow.AddMinutes(30d);
+                return;
+            }
         }
-        else
-        {
-            httpListenerContext.Response.StatusCode = 500;
-            httpListenerContext.Response.ContentType = "text/plain; charset=utf-8";
-            await httpListenerContext.Response.OutputStream.WriteAsync(Encoding.UTF8.GetBytes("Искомых данных о погоде нет!"));
-        }
+        httpListenerContext.Response.StatusCode = 403;
+        httpListenerContext.Response.ContentType = "text/plain; charset=utf-8";
+        await httpListenerContext.Response.OutputStream.WriteAsync(Encoding.UTF8.GetBytes("У вас нет доступа к этому функционалу"));
     }
     
     [Mapping("user","POST")]
@@ -64,12 +79,12 @@ public static class WebHelper
         var user = await _dbContext.GetUser(loginModel);
         if (user != null)
         {
-            var sessionId = BCrypt.Net.BCrypt.HashPassword(user.Password + "salt");
+            var sessionId = BCrypt.Net.BCrypt.HashPassword(user.Id + "salt");
             
             await RedisStore.RedisCache.SetAddAsync(new RedisKey(sessionId), new RedisValue(user.Id.ToString()));
             context.Response.Cookies.Add(new Cookie
             {
-                Name = user.Email,
+                Name = "session-id",
                 Value = sessionId,
                 Expires = DateTime.UtcNow.AddMinutes(30d)
             });
