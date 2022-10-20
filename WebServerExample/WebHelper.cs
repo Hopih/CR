@@ -58,10 +58,8 @@ public static class WebHelper
 
             if (result != null)
             {
-                httpListenerContext.Response.StatusCode = 200;
-                httpListenerContext.Response.ContentType = "text/plain; charset=utf-8";
-                await httpListenerContext.Response.OutputStream.WriteAsync(Encoding.UTF8.GetBytes(user.Id.ToString()));
-                
+                httpListenerContext.Response.StatusCode = 204;
+                httpListenerContext.Response.ContentLength64 = 0;
                 return;
             }
         }
@@ -86,6 +84,7 @@ public static class WebHelper
             {
                 Name = "session-id",
                 Value = sessionId,
+                Port = "5000",
                 Expires = DateTime.UtcNow.AddMinutes(30d)
             });
             await ShowFile(@"public\index.html",context);

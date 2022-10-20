@@ -44,13 +44,13 @@
             contentType: 'application/json',
             success: function (data) {
                 if(data == null){
-                    window.navigate("login.html");
+                    location.assign("/login.html");
                 }
                 else{
                     resultMessage.text(data);
                 }
             }
-        })
+        });
     });
 </script>
 </body>
