@@ -6,6 +6,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenApiHttpClientExample", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CacheExample", "CacheExample\CacheExample.csproj", "{98F18BE4-6059-4C63-8D97-26EDD28E066C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FactoryMethodExample", "FactoryMethodExample\FactoryMethodExample.csproj", "{B1051E4E-72E3-4B3E-9303-8BF043C28935}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +26,9 @@ Global
 		{98F18BE4-6059-4C63-8D97-26EDD28E066C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{98F18BE4-6059-4C63-8D97-26EDD28E066C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{98F18BE4-6059-4C63-8D97-26EDD28E066C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B1051E4E-72E3-4B3E-9303-8BF043C28935}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B1051E4E-72E3-4B3E-9303-8BF043C28935}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B1051E4E-72E3-4B3E-9303-8BF043C28935}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B1051E4E-72E3-4B3E-9303-8BF043C28935}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

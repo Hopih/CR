@@ -18,7 +18,7 @@ public class DatabaseContext
     {
         user.Password = BCrypt.Net.BCrypt.HashPassword(user.Password);
         var id = Guid.NewGuid();
-        var sqlExpression =
+        var  sqlExpression=
             $@"INSERT INTO Users (Id, Email, Mobile, Description, Password) VALUES 
             (
              '{id}',
@@ -28,22 +28,17 @@ public class DatabaseContext
              ,'{user.Password}')";
 
         await using var connection = new SqlConnection(_connectionString);
-        try
+        await connection.OpenAsync();
+        await using var command = new SqlCommand(sqlExpression, connection);
+        var result = await command.ExecuteNonQueryAsync();
+        if (result <= 0)
         {
-            await connection.OpenAsync();
-            await using var command = new SqlCommand(sqlExpression, connection);
-            var result = await command.ExecuteNonQueryAsync();
-            if (result > 0)
-            {
-                user.Id = id;
-                return user;
-            }
+            return null;
         }
-        finally
-        {
-            await connection.CloseAsync();
-        }
-        return null;
+
+        user.Id = id;
+        return user;
+
     }
 
     public async Task<User> GetUser(LoginModel loginModel)
