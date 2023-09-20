@@ -1,15 +1,18 @@
-﻿// See https://aka.ms/new-console-template for more information
-
-Console.WriteLine("Hello, World!");
-
-var currentDirectory = Directory.GetCurrentDirectory();
+﻿var currentDirectory = Directory.GetCurrentDirectory();
 
 await using var fileStream = new FileStream($@"{currentDirectory}\text.txt", FileMode.Open);
 using var binaryStream = new BinaryReader(fileStream);
+char lastChar = default;
 while (binaryStream.BaseStream.CanRead)
 {
     var inputChar = binaryStream.ReadChar();
+    if (inputChar == ' ' && lastChar == '.')
+    { 
+        lastChar = inputChar;
+        continue; 
+    }
     Console.Write(inputChar);
+    
     switch (inputChar)
     {
         case ',':
@@ -17,10 +20,11 @@ while (binaryStream.BaseStream.CanRead)
             break;
         case '.':
             Thread.Sleep(2000);
-            Console.Write("\n\r");
+            Console.Write("\n");
             break;
         default:
             Thread.Sleep(new Random().Next(70, 200));
             break;
     }
+    lastChar = inputChar;
 }

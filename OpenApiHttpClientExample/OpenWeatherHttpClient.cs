@@ -1,4 +1,6 @@
-﻿namespace OpenApiHttpClientExample;
+﻿using System.Net.Http.Json;
+
+namespace OpenApiHttpClientExample;
 
 public class OpenWeatherHttpClient
 {

@@ -16,6 +16,7 @@
         <None Update="public\**\*.*">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
+        <None Remove="public\ExcludedFile.txt" />
     </ItemGroup>
 
     <ItemGroup>
