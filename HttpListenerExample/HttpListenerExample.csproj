@@ -8,14 +8,24 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <PackageReference Include="CodeJam" Version="4.1.0" />
+      <PackageReference Include="Npgsql" Version="7.0.6" />
+    </ItemGroup>
+
+    <ItemGroup>
         <None Update="public\**\*.*">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
     </ItemGroup>
 
 
-    <ItemGroup>
+  <ItemGroup>
       <ProjectReference Include="..\OpenApiHttpClientExample\OpenApiHttpClientExample.csproj" />
     </ItemGroup>
+
+
+  <ItemGroup>
+    <Folder Include="Entities\" />
+  </ItemGroup>
 
 </Project>

@@ -1,5 +1,9 @@
 using System.Net;
 using System.Text;
+using System.Text.Json;
+using CodeJam;
+using HttpListenerExample;
+using HttpListenerExample.Entities;
 using OpenApiHttpClientExample;
 
 namespace WebServerExample;
@@ -59,7 +63,41 @@ public static class WebHelper
         context.Response.StatusCode = 404;
         await context.Response.OutputStream.WriteAsync(Encoding.UTF8.GetBytes("Нужная вам страница не найдена!"));
     }
-    
+
+    private static async Task Show500(HttpListenerContext context, Exception ex)
+    {
+        context.Response.ContentType = "text/plain; charset=utf-8";
+        context.Response.StatusCode = 500;
+        await context.Response.OutputStream.WriteAsync(
+            Encoding.UTF8.GetBytes(
+                $"Произошла ошибка на стороне сервера. Информация по ошибке: {ex.ToDiagnosticString()}"));
+    }
+
+    public static async Task AddUserAsync(HttpListenerContext context, CancellationToken ctx)
+    {
+
+        try
+        {
+            using var sr = new StreamReader(context.Request.InputStream);
+            var userStr = await sr.ReadToEndAsync().ConfigureAwait(false);
+            var user = JsonSerializer.Deserialize<User>(userStr, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+            if (user != null)
+            {
+                var dbContext = new DbContext();
+                await dbContext.AddUserAsync(user, ctx);
+                await context.Response.OutputStream.WriteAsync(
+                    Encoding.UTF8.GetBytes("Поздравляем!"), ctx);
+            }
+        }
+        catch(Exception ex)
+        {
+            await Show500(context, ex);
+        }
+    }
+
     public static async Task ShowIndex(HttpListenerContext context)
     {
         await ShowFile(@"public\index.html",context);

@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css" integrity="sha384-gH2yIJqKdNHPEq0n4Mqa/HGKIhSkIHeL5AyhkYV8i59U5AR6csBvApHHNl/vI1Bx" crossorigin="anonymous">
     <link rel="stylesheet" type="text/css" href="common.css"/>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.min.js" integrity="sha384-ODmDIVzN+pFdexxHEHFBQH3/9/vQ9uori45z4JjnFsRydbmQbmL5t1tQ0culUzyK" crossorigin="anonymous"></script>
+    <script defer src="registration.js"></script>
 </head>
 <body>
 <div class="container">
@@ -16,42 +17,15 @@
             <h3 class="align-content-md-center">Вас приветствует какой то непонятный сайт. не знаю как вы здесь оказались, но тут вы можете зарегестрироваться</h3>
             <form id="userForm">
                 <label>Email:  <input type="text" id="email" name="email" class="form-control"></label><br>
-                <label>Mobile: <input type="text" id="mobile" name="mobile" class="form-control"></label><br>
-                <label>Password:<input type="password" id="password" name="password" class="form-control" ></label><br>
-                <label>Comment:<textarea id="description" class="form-control" name="comments" placeholder="Расскажи о себе"></textarea></label><br>
-                <input type="button" id="saveUser" class="btn btn-success" value="Зарегестрироваться" /><br>
+                <label>Full Name: <input type="text" id="fullName" name="fullName" class="form-control"></label><br>
+                <input type="submit" id="saveUser" class="btn btn-success" value="Зарегестрироваться" /><br>
             </form>
+            <div id ="resultMessage"></div>
         </div>
     </main>
     <footer class="footer">
         &copy; Copyright Mr. Camel
     </footer>
 </div>
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
-<script>
-    var resultMessage = $("#resultMessage");
-    $("#saveUser").click(function (){
-
-        var email = $("#email").val().trim();
-        var mobile = $("#mobile").val().trim();
-        var description = $("#description").val().trim();
-        var password = $("#password").val().trim();
-
-        $.ajax({
-            url: '/user',
-            type: 'POST',
-            data: JSON.stringify({ 'email': email, 'mobile': mobile, 'description': description, 'password': password}),
-            contentType: 'application/json',
-            success: function (data) {
-                if(data == null){
-                    location.assign("/login.html");
-                }
-                else{
-                    resultMessage.text(data);
-                }
-            }
-        });
-    });
-</script>
 </body>
 </html>
