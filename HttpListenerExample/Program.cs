@@ -1,6 +1,5 @@
 ﻿using System.Net;
 using HttpListenerExample;
-using WebServerExample;
 
 var httpListener = new HttpListener();
 httpListener.Prefixes.Add("http://localhost:5000/");
@@ -16,10 +15,10 @@ while (httpListener.IsListening)
     {
         switch (request.Url?.LocalPath){
             case "/home":
-                await WebHelper.ShowIndex(context);
+                await WebHelper.ShowIndex(context, ctx.Token);
                 break;
             case "/weather":
-                await WebHelper.ShowWeatherApi(context);
+                await WebHelper.ShowWeatherApi(context, ctx.Token);
                 break;
             case "/create/db":
             {
@@ -28,13 +27,19 @@ while (httpListener.IsListening)
                 break;
             }
             case "/signup":
-                await WebHelper.ShowSignUp(context);
+                await WebHelper.ShowSignUp(context, ctx.Token);
+                break;
+            case "/signin":
+                await WebHelper.ShowSignIn(context, ctx.Token);
                 break;
             case "/registration":
                 await WebHelper.AddUserAsync(context,ctx.Token);
                 break;
+            case "/login":
+                await WebHelper.ShowLogin(context, ctx.Token);
+                break;
             default:
-                await WebHelper.ShowStatic(context);
+                await WebHelper.ShowStatic(context, ctx.Token);
                 break;
         }
         response.OutputStream.Close();

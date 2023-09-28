@@ -1,4 +1,46 @@
-﻿document.getElementById("userForm").addEventListener("submit", async (event)=>{
+﻿document.getElementById("psw").addEventListener("keyup", (event) => {
+    var isSuccess = false;
+    var inputParameters = [
+        {
+            param: document.getElementById("letter"),
+            regex: /[a-z]/g
+        },
+        {
+            param: document.getElementById("capital"),
+            regex: /[A-Z]/g
+        },
+        {
+            param: document.getElementById("number"),
+            regex: /[0-9]/g
+        },
+        {
+            param: document.getElementById("length"),
+            regex: /{ 8, }/g
+        }
+    ];
+    inputParameters.forEach(temp => {
+        if (!event.target.value.match(temp.regex)) {
+
+            temp.param.classList.remove("invalid");
+            temp.param.classList.add("valid");
+            isSuccess = true;
+        } else {
+            temp.param.classList.remove("valid");
+            temp.param.classList.add("invalid");
+            isSuccess = false;
+        }
+    });
+
+    if (isSuccess) {
+        document.getElementById("successPassword").innerText = "Ваш пароль не соответствует требуемым критериям!";
+    } else {
+        document.getElementById("successPassword").innerText = "Ваш пароль прекрасен! Тыкай!";
+    }
+});
+
+
+
+document.getElementById("userForm").addEventListener("submit", async (event) => {
     event.preventDefault();
     var myFormData = new FormData(event.target);
 

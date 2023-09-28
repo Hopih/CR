@@ -9,6 +9,7 @@
 
     <ItemGroup>
       <PackageReference Include="CodeJam" Version="4.1.0" />
+      <PackageReference Include="FluentValidation" Version="11.7.1" />
       <PackageReference Include="Npgsql" Version="7.0.6" />
     </ItemGroup>
 

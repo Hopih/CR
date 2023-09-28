@@ -2,16 +2,16 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using CodeJam;
-using HttpListenerExample;
 using HttpListenerExample.Entities;
+using HttpListenerExample.Helpers;
 using OpenApiHttpClientExample;
 
-namespace WebServerExample;
+namespace HttpListenerExample;
 
 public static class WebHelper
 {
     
-    public static async Task ShowWeatherApi(HttpListenerContext httpListenerContext)
+    public static async Task ShowWeatherApi(HttpListenerContext httpListenerContext, CancellationToken ctx)
     {
         //тут можно например счетчик вести для данного пользователя. Нас попросили просто вывести данные 
         var weatherApi = new OpenWeatherHttpClient();
@@ -20,16 +20,16 @@ public static class WebHelper
         {
             httpListenerContext.Response.StatusCode = 200;
             httpListenerContext.Response.ContentType = "application/json";
-            await httpListenerContext.Response.OutputStream.WriteAsync(Encoding.UTF8.GetBytes(weather));
+            await httpListenerContext.Response.OutputStream.WriteAsync(Encoding.UTF8.GetBytes(weather), ctx);
             return;
         }
         
         httpListenerContext.Response.StatusCode = 500;
         httpListenerContext.Response.ContentType = "text/plain; charset=utf-8";
-        await httpListenerContext.Response.OutputStream.WriteAsync(Encoding.UTF8.GetBytes("Искомых данных о погоде нет!"));
+        await httpListenerContext.Response.OutputStream.WriteAsync(Encoding.UTF8.GetBytes("Искомых данных о погоде нет!"), ctx);
     }
 
-    public static async Task ShowStatic(HttpListenerContext context)
+    public static async Task ShowStatic(HttpListenerContext context, CancellationToken ctx)
     {
         var path = context.Request.Url?.LocalPath
             .Split("/")
@@ -49,28 +49,28 @@ public static class WebHelper
     
         if (File.Exists(basePath))
         {
-            await ShowFile(basePath, context);
+            await ShowFile(basePath, context, ctx);
         }
         else
         {
-            await Show404(context);
+            await Show404(context, ctx);
         }
     }
     
-    private static async Task Show404(HttpListenerContext context)
+    private static async Task Show404(HttpListenerContext context, CancellationToken ctx)
     {
         context.Response.ContentType = "text/plain; charset=utf-8";
         context.Response.StatusCode = 404;
-        await context.Response.OutputStream.WriteAsync(Encoding.UTF8.GetBytes("Нужная вам страница не найдена!"));
+        await context.Response.OutputStream.WriteAsync(Encoding.UTF8.GetBytes("Нужная вам страница не найдена!"), ctx);
     }
 
-    private static async Task Show500(HttpListenerContext context, Exception ex)
+    private static async Task Show500(HttpListenerContext context, Exception ex, CancellationToken ctx)
     {
         context.Response.ContentType = "text/plain; charset=utf-8";
         context.Response.StatusCode = 500;
         await context.Response.OutputStream.WriteAsync(
             Encoding.UTF8.GetBytes(
-                $"Произошла ошибка на стороне сервера. Информация по ошибке: {ex.ToDiagnosticString()}"));
+                $"Произошла ошибка на стороне сервера. Информация по ошибке: {ex.ToDiagnosticString()}"), ctx);
     }
 
     public static async Task AddUserAsync(HttpListenerContext context, CancellationToken ctx)
@@ -86,34 +86,54 @@ public static class WebHelper
             });
             if (user != null)
             {
+                var userValidator = new UserValidator();
+
+                var validationResult = await userValidator.ValidateAsync(user, ctx);
+
+                if (validationResult is { IsValid: false })
+                {
+                    context.Response.ContentType = "text/plain; charset=utf-8";
+                    context.Response.StatusCode = 400;
+                    await context.Response.OutputStream.WriteAsync(
+                        Encoding.UTF8.GetBytes($"Ваши данные не прошли проверку! Информация по ошибке: " +
+                                               $"{string.Join("\n\r", validationResult.Errors.Select(er => er.ErrorMessage))}"),
+                        ctx);
+                }
+
+                //хешируем пароль
+                user.Password = MyPasswordHasher.Hash(user.Password);
+
                 var dbContext = new DbContext();
                 await dbContext.AddUserAsync(user, ctx);
+                
+                context.Response.ContentType = "text/plain; charset=utf-8";
+                context.Response.StatusCode = 200;
                 await context.Response.OutputStream.WriteAsync(
                     Encoding.UTF8.GetBytes("Поздравляем!"), ctx);
             }
         }
         catch(Exception ex)
         {
-            await Show500(context, ex);
+            await Show500(context, ex, ctx);
         }
     }
 
-    public static async Task ShowIndex(HttpListenerContext context)
+    public static async Task ShowIndex(HttpListenerContext context, CancellationToken ctx)
     {
-        await ShowFile(@"public\index.html",context);
+        await ShowFile(@"public\index.html",context, ctx);
     }
     
-    public static async Task ShowSignUp(HttpListenerContext context)
+    public static async Task ShowSignUp(HttpListenerContext context, CancellationToken ctx)
     {
-        await ShowFile(@"public\signup.html",context);
+        await ShowFile(@"public\signup.html",context, ctx);
     }
     
-    public static async Task ShowLogin(HttpListenerContext context)
+    public static async Task ShowLogin(HttpListenerContext context, CancellationToken ctx)
     {
-        await ShowFile(@"public\login.html",context);
+        await ShowFile(@"public\login.html",context, ctx);
     }
 
-    private static async Task ShowFile(string path, HttpListenerContext context)
+    private static async Task ShowFile(string path, HttpListenerContext context, CancellationToken ctx)
     {
         context.Response.StatusCode = 200;
         context.Response.ContentType = Path.GetExtension(path) switch
@@ -123,7 +143,12 @@ public static class WebHelper
             ".html" => "text/html",
             _ => "text/plain"
         };
-        var file = await File.ReadAllBytesAsync(path);
-        await context.Response.OutputStream.WriteAsync(file);
+        var file = await File.ReadAllBytesAsync(path, ctx);
+        await context.Response.OutputStream.WriteAsync(file, ctx);
+    }
+
+    public static async Task ShowSignIn(HttpListenerContext context, CancellationToken ctxToken)
+    {
+        throw new NotImplementedException();
     }
 }

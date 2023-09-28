@@ -30,6 +30,7 @@ public class DbContext
 	        id bigint NOT NULL GENERATED ALWAYS AS IDENTITY,
             email varchar(64) NOT NULL,
 	        full_name varchar(256) NOT NULL,
+            password varchar(512) NOT NULL,
             CONSTRAINT users_pk PRIMARY KEY (id));
 
             CREATE INDEX users_id_idx ON public.users (id);";
