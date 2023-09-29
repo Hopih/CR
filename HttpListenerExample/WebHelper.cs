@@ -149,6 +149,36 @@ public static class WebHelper
 
     public static async Task ShowSignIn(HttpListenerContext context, CancellationToken ctxToken)
     {
-        throw new NotImplementedException();
+        using var sr = new StreamReader(context.Request.InputStream);
+        var userLoginModel = JsonSerializer.Deserialize<UserLoginModel>(
+            await sr.ReadToEndAsync().ConfigureAwait(false), 
+            new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        });
+
+        var dbContext = new DbContext();
+        try
+        {
+            var user = await dbContext.GetUserByEmailAsync(
+                userLoginModel!.Email, ctxToken);
+            var sessionId = Guid.NewGuid();
+            
+            if (MyPasswordHasher.Validate(user.Password, userLoginModel.Password))
+            {
+                context.Response.Cookies.Add(new Cookie
+                {
+                    Name = "session-id",
+                    Value = sessionId.ToString(),
+                    Port = "5000",
+                    Expires = DateTime.UtcNow.AddMinutes(30d)
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            await Show500(context, ex, ctxToken);
+        }
+
     }
 }

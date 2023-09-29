@@ -69,9 +69,9 @@ public class DbContext
         try
         {
             await using var command = _dbConnection.CreateCommand();
+            command.Parameters.AddWithValue("email", NpgsqlDbType.Varchar, email);
 
-            //Создаем таблички если их нет 
-            command.CommandText = $@"select * from users where email = '{email}'";
+            command.CommandText = $@"select * from users where email = @email";
             await using var reader = await command.ExecuteReaderAsync(ctx);
 
             if (reader.HasRows && await reader.ReadAsync(ctx))
@@ -81,7 +81,8 @@ public class DbContext
                     Id = reader.GetInt64("id"),
                     Email = reader.GetString("email"),
                     FullName = reader.GetString("full_name"),
-                    News = new List<News>() //тут можно выполнить доп запрос с join или сделать комплексный вызов
+                    Password = reader.GetString("password"),
+                    News = new List<News>() //метод где не требуются новости
                 };
             }
         }
@@ -101,7 +102,8 @@ public class DbContext
         {
             await using var command = _dbConnection.CreateCommand();
 
-            command.Parameters.Add("userId", NpgsqlDbType.Bigint);
+            command.Parameters.AddWithValue(
+                "userId", NpgsqlDbType.Bigint, user.Id);
 
             //Создаем таблички если их нет 
             command.CommandText = $@"select * from news where authorId = @userId ";
@@ -206,6 +208,15 @@ public class DbContext
                 Direction = ParameterDirection.Input,
                 Value = user.Email
             });
+
+            command.Parameters.Add(new NpgsqlParameter
+            {
+                ParameterName = "_password",
+                NpgsqlDbType = NpgsqlDbType.Varchar,
+                Direction = ParameterDirection.Input,
+                Value = user.Password
+            });
+
             command.Parameters.Add(new NpgsqlParameter
             {
                 ParameterName = "_out_result",

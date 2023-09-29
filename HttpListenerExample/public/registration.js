@@ -15,11 +15,11 @@
         },
         {
             param: document.getElementById("length"),
-            regex: /{ 8, }/g
+            regex: /.{ 8, }/g
         }
     ];
     inputParameters.forEach(temp => {
-        if (!event.target.value.match(temp.regex)) {
+        if (event.target.value.match(temp.regex)) {
 
             temp.param.classList.remove("invalid");
             temp.param.classList.add("valid");

@@ -9,7 +9,7 @@ public static class RedisStore
         { 
             EndPoints =
             {
-                "localhost:49153"
+                "localhost:6379"
             } ,
             Password = "redispw"
         }));
