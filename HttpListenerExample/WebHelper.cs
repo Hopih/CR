@@ -1,10 +1,12 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using CacheExample;
 using CodeJam;
 using HttpListenerExample.Entities;
 using HttpListenerExample.Helpers;
 using OpenApiHttpClientExample;
+using StackExchange.Redis;
 
 namespace HttpListenerExample;
 
@@ -161,16 +163,17 @@ public static class WebHelper
         try
         {
             var user = await dbContext.GetUserByEmailAsync(
-                userLoginModel!.Email, ctxToken);
-            var sessionId = Guid.NewGuid();
-            
+                userLoginModel!.Login, ctxToken);
+            var sessionId = Guid.NewGuid().ToString();
+
+            await RedisStore.RedisCache.SetAddAsync(new RedisKey(sessionId), new RedisValue(user.Id.ToString()));
+
             if (MyPasswordHasher.Validate(user.Password, userLoginModel.Password))
             {
                 context.Response.Cookies.Add(new Cookie
                 {
                     Name = "session-id",
-                    Value = sessionId.ToString(),
-                    Port = "5000",
+                    Value = sessionId,
                     Expires = DateTime.UtcNow.AddMinutes(30d)
                 });
             }
@@ -179,6 +182,9 @@ public static class WebHelper
         {
             await Show500(context, ex, ctxToken);
         }
-
+        context.Response.ContentType = "text/plain; charset=utf-8";
+        context.Response.StatusCode = 200;
+        await context.Response.OutputStream.WriteAsync(
+            Encoding.UTF8.GetBytes("Поздравляем!"), ctxToken);
     }
 }

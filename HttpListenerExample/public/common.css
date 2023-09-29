@@ -19,7 +19,7 @@ body {
 .valid:before {
     position: relative;
     left: -35px;
-    content: “✔”;
+    content: "✔";
 }
 
 .header {

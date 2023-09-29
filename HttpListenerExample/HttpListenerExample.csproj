@@ -21,6 +21,7 @@
 
 
   <ItemGroup>
+      <ProjectReference Include="..\CacheExample\CacheExample.csproj" />
       <ProjectReference Include="..\OpenApiHttpClientExample\OpenApiHttpClientExample.csproj" />
     </ItemGroup>
 

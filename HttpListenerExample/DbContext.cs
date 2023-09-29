@@ -194,13 +194,7 @@ public class DbContext
         {
             await using var command = _dbConnection.CreateCommand();
             command.CommandType = CommandType.StoredProcedure;
-            command.Parameters.Add(new NpgsqlParameter
-            {
-                ParameterName = "_full_name",
-                NpgsqlDbType = NpgsqlDbType.Varchar,
-                Direction = ParameterDirection.Input,
-                Value = user.FullName
-            });
+
             command.Parameters.Add(new NpgsqlParameter
             {
                 ParameterName = "_email",
@@ -209,6 +203,14 @@ public class DbContext
                 Value = user.Email
             });
 
+            command.Parameters.Add(new NpgsqlParameter
+            {
+                ParameterName = "_full_name",
+                NpgsqlDbType = NpgsqlDbType.Varchar,
+                Direction = ParameterDirection.Input,
+                Value = user.FullName
+            });
+            
             command.Parameters.Add(new NpgsqlParameter
             {
                 ParameterName = "_password",
