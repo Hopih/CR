@@ -11,7 +11,7 @@ public class UserValidator : AbstractValidator<User>
         RuleFor(u => u.Email)
             .NotEmpty()
             .EmailAddress()
-            .NotNull().WithMessage("Пота введена не корректно!");
+            .NotNull().WithMessage("Почта введена не корректно!");
         RuleFor(u => u.Password)
             .MatchPassword()
             .WithMessage("Пароль не соответствует требованиям!");
@@ -22,6 +22,6 @@ public static class CustomValidators
 {
     public static IRuleBuilderOptions<T, string> MatchPassword<T>(this IRuleBuilder<T, string> ruleBuilder)
     {
-        return ruleBuilder.SetValidator(new RegularExpressionValidator<T>(@"((?"" =.*\d)(? =.*[a-z])(? =.*[A-Z]).{8,}$)"));
+        return ruleBuilder.SetValidator(new RegularExpressionValidator<T>(@"^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9]).{8,}$"));
     }
 }

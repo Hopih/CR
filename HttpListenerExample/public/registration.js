@@ -1,5 +1,5 @@
 ﻿document.getElementById("psw").addEventListener("keyup", (event) => {
-    var isSuccess = false;
+    var isAnyInvalid = false;
     var inputParameters = [
         {
             param: document.getElementById("letter"),
@@ -15,23 +15,24 @@
         },
         {
             param: document.getElementById("length"),
-            regex: /.{ 8, }/g
+            regex: /.{8,}/g
         }
     ];
-    inputParameters.forEach(temp => {
-        if (event.target.value.match(temp.regex)) {
 
-            temp.param.classList.remove("invalid");
-            temp.param.classList.add("valid");
-            isSuccess = true;
+    for (let i = 0; i < inputParameters.length; i++)
+    {
+        if (!event.target.value.match(inputParameters[i].regex)) {
+
+            inputParameters[i].param.classList.remove("valid");
+            inputParameters[i].param.classList.add("invalid");
+            isAnyInvalid = true;
         } else {
-            temp.param.classList.remove("valid");
-            temp.param.classList.add("invalid");
-            isSuccess = false;
+            inputParameters[i].param.classList.remove("invalid");
+            inputParameters[i].param.classList.add("valid");
         }
-    });
+    }
 
-    if (isSuccess) {
+    if (isAnyInvalid) {
         document.getElementById("successPassword").innerText = "Ваш пароль не соответствует требуемым критериям!";
     } else {
         document.getElementById("successPassword").innerText = "Ваш пароль прекрасен! Тыкай!";
