@@ -1,8 +1,16 @@
 ﻿using System.Net;
 using HttpListenerExample;
+using HttpListenerExample.Entities;
 
 var httpListener = new HttpListener();
 httpListener.Prefixes.Add("http://localhost:5000/");
+
+var usersDb = MongoDb.Client.GetDatabase("my-site");
+
+if (usersDb.GetCollection<User>("users") == null)
+{
+    await usersDb.CreateCollectionAsync("users");
+}
 
 httpListener.Start();
 while (httpListener.IsListening)

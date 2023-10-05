@@ -6,6 +6,7 @@ using CodeJam;
 using HttpListenerExample.Entities;
 using HttpListenerExample.Helpers;
 using Microsoft.Extensions.Caching.Memory;
+using MongoDB.Driver;
 using OpenApiHttpClientExample;
 using StackExchange.Redis;
 
@@ -108,6 +109,11 @@ public static class WebHelper
 
                 var dbContext = new DbContext();
                 await dbContext.AddUserAsync(user, ctx);
+
+                //Про то как читать данные читайте тут https://metanit.com/sharp/mongodb/1.7.php
+                var mongoDb = MongoDb.Client.GetDatabase("my-site");
+                var usersCollection = mongoDb.GetCollection<User>("users");
+                await usersCollection.InsertOneAsync(user,null, ctx);
                 
                 context.Response.ContentType = "text/plain; charset=utf-8";
                 context.Response.StatusCode = 200;
