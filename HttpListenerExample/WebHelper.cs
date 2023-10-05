@@ -5,6 +5,7 @@ using CacheExample;
 using CodeJam;
 using HttpListenerExample.Entities;
 using HttpListenerExample.Helpers;
+using Microsoft.Extensions.Caching.Memory;
 using OpenApiHttpClientExample;
 using StackExchange.Redis;
 
@@ -165,7 +166,8 @@ public static class WebHelper
             var user = await dbContext.GetUserByEmailAsync(
                 userLoginModel!.Login, ctxToken);
             var sessionId = Guid.NewGuid().ToString();
-
+            //альтернативное использование кеша в памяти
+            //MemoryCache.Cache.Set(sessionId, user);
             await RedisStore.RedisCache.SetAddAsync(new RedisKey(sessionId), new RedisValue(user.Id.ToString()));
 
             if (MyPasswordHasher.Validate(user.Password, userLoginModel.Password))

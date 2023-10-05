@@ -10,6 +10,7 @@
     <ItemGroup>
       <PackageReference Include="CodeJam" Version="4.1.0" />
       <PackageReference Include="FluentValidation" Version="11.7.1" />
+      <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.0-rc.1.23419.4" />
       <PackageReference Include="Npgsql" Version="7.0.6" />
     </ItemGroup>
 
