@@ -1,20 +1,27 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebServerExample", "WebServerExample\WebServerExample.csproj", "{80F2EA48-60E8-4995-8219-98DEFDAEA7C3}"
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.33627.172
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WebServerExample", "WebServerExample\WebServerExample.csproj", "{80F2EA48-60E8-4995-8219-98DEFDAEA7C3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenApiHttpClientExample", "OpenApiHttpClientExample\OpenApiHttpClientExample.csproj", "{F7A81853-426D-4528-9E95-C1893023812D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OpenApiHttpClientExample", "OpenApiHttpClientExample\OpenApiHttpClientExample.csproj", "{F7A81853-426D-4528-9E95-C1893023812D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CacheExample", "CacheExample\CacheExample.csproj", "{98F18BE4-6059-4C63-8D97-26EDD28E066C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CacheExample", "CacheExample\CacheExample.csproj", "{98F18BE4-6059-4C63-8D97-26EDD28E066C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FactoryMethodExample", "FactoryMethodExample\FactoryMethodExample.csproj", "{B1051E4E-72E3-4B3E-9303-8BF043C28935}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FactoryMethodExample", "FactoryMethodExample\FactoryMethodExample.csproj", "{B1051E4E-72E3-4B3E-9303-8BF043C28935}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TcpClientExample", "TcpClientExample\TcpClientExample.csproj", "{10B68351-A1F4-4CAA-933D-49D54C43C853}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TcpClientExample", "TcpClientExample\TcpClientExample.csproj", "{10B68351-A1F4-4CAA-933D-49D54C43C853}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IOExample", "IOExample\IOExample.csproj", "{33E720B5-1F19-42D3-8998-ECD3BBF70218}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IOExample", "IOExample\IOExample.csproj", "{33E720B5-1F19-42D3-8998-ECD3BBF70218}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TcpServerExample", "TcpServerExample\TcpServerExample.csproj", "{79758BBE-97DB-491D-B8CC-5AA5700A48EC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TcpServerExample", "TcpServerExample\TcpServerExample.csproj", "{79758BBE-97DB-491D-B8CC-5AA5700A48EC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HttpListenerExample", "HttpListenerExample\HttpListenerExample.csproj", "{4E63F85A-C080-4F6E-A127-52F9CA4EBE68}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HttpListenerExample", "HttpListenerExample\HttpListenerExample.csproj", "{4E63F85A-C080-4F6E-A127-52F9CA4EBE68}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleTcpClient", "SimpleTcpClient\SimpleTcpClient.csproj", "{3DC05FE6-96E9-47C2-8B79-9B6E1819608A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleSocketServer", "SimpleSocketServer\SimpleSocketServer.csproj", "{B345CCB7-E3C7-48FC-97E7-0EE8064C8928}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -54,5 +61,19 @@ Global
 		{4E63F85A-C080-4F6E-A127-52F9CA4EBE68}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4E63F85A-C080-4F6E-A127-52F9CA4EBE68}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4E63F85A-C080-4F6E-A127-52F9CA4EBE68}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3DC05FE6-96E9-47C2-8B79-9B6E1819608A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3DC05FE6-96E9-47C2-8B79-9B6E1819608A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3DC05FE6-96E9-47C2-8B79-9B6E1819608A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3DC05FE6-96E9-47C2-8B79-9B6E1819608A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B345CCB7-E3C7-48FC-97E7-0EE8064C8928}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B345CCB7-E3C7-48FC-97E7-0EE8064C8928}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B345CCB7-E3C7-48FC-97E7-0EE8064C8928}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B345CCB7-E3C7-48FC-97E7-0EE8064C8928}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {65871C60-1BD3-4C8E-88EF-3B904DB49251}
 	EndGlobalSection
 EndGlobal
