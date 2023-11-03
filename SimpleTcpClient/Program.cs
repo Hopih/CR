@@ -38,7 +38,7 @@ do
     {
         break;
     }
-
+    
     result = await socketClient.ReceiveAsync(
         new ArraySegment<byte>(buffer), SocketFlags.None);
 } while (result > 0);

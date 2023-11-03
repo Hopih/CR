@@ -1,15 +1,8 @@
 ﻿namespace TcpChatServer;
 
-public class SupportCommand
+public enum SupportCommand : byte
 {
-    public const byte Hello = 0x6;
-    public const byte Say = 0x7;
-    public const byte Bye = 0x1B;
-}
-
-public enum SupCommand : byte
-{
-    Hello = 0x6,
-    Say = 0x7, 
+    Hello = 0x06,
+    Say = 0x07, 
     Bye = 0x1B
 }
