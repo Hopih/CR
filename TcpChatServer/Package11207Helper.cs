@@ -2,7 +2,7 @@
 
 public static class Package11207Helper
 {
-    public static readonly byte[] BasePackage = new byte[]
+    public static readonly byte[] BasePackage = 
     {
         0x02, 0x02, 0x02,
         0x31, 0x31, 0x32,
