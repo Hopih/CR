@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using CodeJam;
 using static TcpChatServer.Package11207Helper;
 
 namespace TcpChatServer;
@@ -8,7 +9,7 @@ namespace TcpChatServer;
 public class TcpServer
 {
     private readonly Socket _socket;
-    private const int _maxTimeout = 5 * 60 * 1000;
+    private const int MaxTimeout = 5 * 60 * 1000;
     private readonly Dictionary<Socket,string> _clients = new();
 
     public TcpServer(IPAddress address, int port)
@@ -26,7 +27,7 @@ public class TcpServer
             {
                 var cancellationToken = new CancellationTokenSource();
 
-                cancellationToken.CancelAfter(_maxTimeout);
+                cancellationToken.CancelAfter(MaxTimeout);
                 cancellationToken.Token.Register(async () =>
                 {
                     if (_clients.Count == 0)
@@ -36,20 +37,22 @@ public class TcpServer
                 });
 
                 var connectionSocket = await _socket.AcceptAsync(cancellationToken.Token);
-
+                _clients.Add(connectionSocket, null);
                 var innerCancellationToken = new CancellationTokenSource();
                 _ = Task.Run(
                     async () =>
                         await ProcessSocketConnect(connectionSocket,
                             innerCancellationToken), innerCancellationToken.Token);
-            } while (_socket.Connected);
+            } while (_clients.Count != 0);
         }
         catch (TaskCanceledException tcex)
         {
+            Console.WriteLine(tcex.ToDiagnosticString());
             //ignored
         }
         catch(Exception ex)
         {
+            Console.WriteLine(ex.ToDiagnosticString());
             StopAsync();
         }
     }
@@ -64,17 +67,17 @@ public class TcpServer
     {
         try
         {
-            socket.ReceiveTimeout = _maxTimeout;
-            socket.SendTimeout = _maxTimeout;
+            socket.ReceiveTimeout = MaxTimeout;
+            socket.SendTimeout = MaxTimeout;
             
             var buffer = new byte[MaxPacketSize];
             var contentLength = await socket.ReceiveAsync(buffer, SocketFlags.None, ctxSource.Token);
             
-            if (IsQueryValid(buffer) && 
+            if (IsQueryValid(buffer, contentLength) && 
                 IsHello(buffer[Command], buffer[Fullness], buffer[Query]))
             {
                 var clientName = Encoding.UTF8.GetString(GetContent(buffer, contentLength));
-                _clients.TryAdd(socket, clientName);
+                _clients[socket] = clientName;
 
                 var broadcastMessage = $"К нам присоединился {clientName}";
                 Console.WriteLine(broadcastMessage);
@@ -90,15 +93,17 @@ public class TcpServer
             else
             {
                 Console.WriteLine($"К нам пытался ворваться клиент {GetRemoteIpAdress(socket)}");
+                _clients.Remove(socket);
                 await socket.DisconnectAsync(false);
             }
 
             while (socket.Connected)
             {
                 var content = new List<byte>();
+                content.AddRange(Encoding.UTF8.GetBytes($"{_clients[socket]}:"));
                 string message;
                 contentLength = await socket.ReceiveAsync(buffer, SocketFlags.None, ctxSource.Token);
-                if (!IsQueryValid(buffer) || 
+                if (!IsQueryValid(buffer, contentLength) || 
                     IsHello(buffer[Command], buffer[Fullness], buffer[Query] ))
                 {
                     continue;
@@ -120,6 +125,7 @@ public class TcpServer
                 //Only Say Command
                 else
                 {
+                    content.AddRange(Encoding.UTF8.GetBytes($"{_clients[socket]}:"));
                     content.AddRange(GetContent(buffer, contentLength));
                     if (IsPartial(buffer[Fullness]))
                     {
@@ -127,12 +133,12 @@ public class TcpServer
                     }
                     
                     message = Encoding.UTF8.GetString(content.ToArray());
-                    Console.WriteLine($"{_clients[socket]}: {message}");
+                    Console.WriteLine(message);
                     
                     var resultContent = content.ToArray();
                     content.Clear();
 
-                    var packages = GetResponseSayPackages(resultContent);
+                    var packages = GetPackagesByMessage(resultContent, SupportCommand.Say, QueryType.Response);
 
                     packages.ForEach(
                         async p => await BroadcastMessageAsync(socket, p, ctxSource.Token));
@@ -144,45 +150,6 @@ public class TcpServer
         {
             await socket.DisconnectAsync(false);
         }
-    }
-
-    private static List<byte[]> GetResponseSayPackages(byte[] resultContent)
-    {
-        var packages = new List<byte[]>();
-
-        if (resultContent.Length > MaxSizeOfContent)
-        {
-            var chunks = resultContent
-                .Chunk(MaxSizeOfContent).ToList();
-
-            var chuncksCount = chunks.Count;
-
-            for (var i = 0; i < chuncksCount; i++)
-            {
-                var builder = new PackageBuilder(chunks[i].Length)
-                    .WithCommand(SupportCommand.Say)
-                    .WithQueryType(QueryType.Response);
-
-                builder = builder.WithFullness(i == chuncksCount - 1
-                    ? FullnessPackage.Full
-                    : FullnessPackage.Partial);
-
-                packages.Add(builder
-                    .WithContent(chunks[i])
-                    .Build());
-            }
-        }
-        else
-        {
-            packages.Add(new PackageBuilder(resultContent.Length)
-                .WithCommand(SupportCommand.Say)
-                .WithFullness(FullnessPackage.Full)
-                .WithQueryType(QueryType.Response)
-                .WithContent(resultContent)
-                .Build());
-        }
-
-        return packages;
     }
 
     private string GetRemoteIpAdress(Socket socket)

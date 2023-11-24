@@ -1,4 +1,6 @@
-﻿namespace TcpChatServer;
+﻿using System.Text;
+
+namespace TcpChatServer;
 
 public static class Package11207Helper
 {
@@ -25,22 +27,22 @@ public static class Package11207Helper
 
 
     public static byte[] GetContent(byte[] buffer, int contentLength) =>
-        buffer.Skip(11).Take(contentLength - 12).ToArray();
+        buffer.Skip(MaxFreeBytes - 1).Take(contentLength - MaxFreeBytes).ToArray();
 
-    public static bool IsQueryValid(byte[] buffer) =>
-        HasStart(buffer) && HasEnd(buffer[^1]) 
+    public static bool IsQueryValid(byte[] buffer, int packageLength) =>
+        HasStart(buffer) && HasEnd(buffer[packageLength - 1]) 
                          && IsCorrectProtocol(buffer)
                          && IsFullOrPartial(buffer[Fullness]) 
                          && HasQueryType(buffer[Query]);
 
     public static bool HasStart(byte[] buffer) => 
-        buffer[..3].Equals(BasePackage[..3]);
+        buffer[..3].SequenceEqual(BasePackage[..3]);
     
     public static bool HasEnd(byte lastByte) => 
         lastByte.Equals(LastByte);
     
     public static bool IsCorrectProtocol(byte[] buffer) => 
-        buffer[3..8].Equals(BasePackage[3..8]);
+        buffer[3..8].SequenceEqual(BasePackage[3..8]);
     public static bool IsFullOrPartial(byte fullness) => 
         fullness is (byte)FullnessPackage.Partial 
             or (byte)FullnessPackage.Full;
@@ -76,9 +78,44 @@ public static class Package11207Helper
             .WithQueryType(queryType)
             .WithContent(content)
             .Build();
-    
-    public static List<byte[]> SerializationBy11207Protocol(byte[] message)
+
+    public static List<byte[]> GetPackagesByMessage(byte[] resultContent, SupportCommand supportCommand, QueryType queryType)
     {
-        return new List<byte[]>();
+        
+        var packages = new List<byte[]>();
+
+        if (resultContent.Length > MaxSizeOfContent)
+        {
+            var chunks = resultContent
+                .Chunk(MaxSizeOfContent).ToList();
+
+            var chuncksCount = chunks.Count;
+
+            for (var i = 0; i < chuncksCount; i++)
+            {
+                var builder = new PackageBuilder(chunks[i].Length)
+                    .WithCommand(supportCommand)
+                    .WithQueryType(queryType);
+
+                builder = builder.WithFullness(i == chuncksCount - 1
+                    ? FullnessPackage.Full
+                    : FullnessPackage.Partial);
+
+                packages.Add(builder
+                    .WithContent(chunks[i])
+                    .Build());
+            }
+        }
+        else
+        {
+            packages.Add(new PackageBuilder(resultContent.Length)
+                .WithCommand(supportCommand)
+                .WithFullness(FullnessPackage.Full)
+                .WithQueryType(queryType)
+                .WithContent(resultContent)
+                .Build());
+        }
+        return packages;
     }
+    
 }

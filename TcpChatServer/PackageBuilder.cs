@@ -20,7 +20,7 @@ public class PackageBuilder
 
     private void CreateBasePackage()
     {
-        Array.Copy(BasePackage, _package, _package.Length);
+        Array.Copy(BasePackage, _package, BasePackage.Length);
         
         _package[^1] = LastByte;
     }
@@ -48,14 +48,14 @@ public class PackageBuilder
 
     public PackageBuilder WithContent(byte[] content)
     {
-        if (content.Length > _package.Length - 10)
+        if (content.Length > _package.Length - MaxFreeBytes)
         {
             throw new ArgumentException(nameof(content));
         }
 
         for (var i = 0; i < content.Length; i++)
         {
-            _package[i + 10] = content[i];
+            _package[i + MaxFreeBytes - 1] = content[i];
         }
 
         return this;

@@ -11,4 +11,8 @@
     <ProjectReference Include="..\TcpChatServer\TcpChatServer.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="CodeJam" Version="4.1.0" />
+  </ItemGroup>
+
 </Project>
