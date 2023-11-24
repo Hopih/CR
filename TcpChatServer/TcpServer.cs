@@ -1,14 +1,15 @@
-﻿using System.Collections.Concurrent;
-using System.Net;
+﻿using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using static TcpChatServer.Package11207Helper;
 
 namespace TcpChatServer;
 
 public class TcpServer
 {
     private readonly Socket _socket;
-    private readonly ConcurrentDictionary<Socket,string> _clients = new();
+    private const int _maxTimeout = 5 * 60 * 1000;
+    private readonly Dictionary<Socket,string> _clients = new();
 
     public TcpServer(IPAddress address, int port)
     {
@@ -16,85 +17,126 @@ public class TcpServer
         _socket.Bind(new IPEndPoint(address, port));
     }
 
-    public async Task Start()
+    public async Task StartAsync()
     {
         try
         {
             _socket.Listen();
-            while (_socket.Connected)
+            do
             {
-                var connectionSocket = await _socket.AcceptAsync();
                 var cancellationToken = new CancellationTokenSource();
+
+                cancellationToken.CancelAfter(_maxTimeout);
+                cancellationToken.Token.Register(async () =>
+                {
+                    if (_clients.Count == 0)
+                    {
+                        StopAsync();
+                    }
+                });
+
+                var connectionSocket = await _socket.AcceptAsync(cancellationToken.Token);
+
+                var innerCancellationToken = new CancellationTokenSource();
                 _ = Task.Run(
                     async () =>
-                        await ProcessSocketConnect(connectionSocket, 
-                            cancellationToken), cancellationToken.Token);
-            }
+                        await ProcessSocketConnect(connectionSocket,
+                            innerCancellationToken), innerCancellationToken.Token);
+            } while (_socket.Connected);
         }
-        catch
+        catch (TaskCanceledException tcex)
         {
-            _socket.Close();
+            //ignored
+        }
+        catch(Exception ex)
+        {
+            StopAsync();
         }
     }
+
+    private void StopAsync()
+    {
+        _socket.Close();
+    }
+    
 
     private async Task ProcessSocketConnect(Socket socket, CancellationTokenSource ctxSource)
     {
         try
         {
-            ctxSource.CancelAfter(5 * 60 * 1000);
-            ctxSource.Token.Register(() => 
-                throw new TimeoutException("Time is out"));
-            var contentLength = 0;
-            var buffer = new byte[256];
-            contentLength = await socket.ReceiveAsync(buffer, SocketFlags.None, ctxSource.Token);
+            socket.ReceiveTimeout = _maxTimeout;
+            socket.SendTimeout = _maxTimeout;
             
-            if (IsResponseValid(buffer) && IsHello(buffer))
+            var buffer = new byte[MaxPacketSize];
+            var contentLength = await socket.ReceiveAsync(buffer, SocketFlags.None, ctxSource.Token);
+            
+            if (IsQueryValid(buffer) && 
+                IsHello(buffer[Command], buffer[Fullness], buffer[Query]))
             {
                 var clientName = Encoding.UTF8.GetString(GetContent(buffer, contentLength));
                 _clients.TryAdd(socket, clientName);
 
                 var broadcastMessage = $"К нам присоединился {clientName}";
                 Console.WriteLine(broadcastMessage);
-                //TODO: BroadCast
-
-                await socket.SendAsync(Encoding.UTF8.GetBytes(broadcastMessage), SocketFlags.None, ctxSource.Token);
+                var contentBytes = Encoding.UTF8.GetBytes(broadcastMessage);
+                
+                var package = CreatePackage(contentBytes,
+                    SupportCommand.Say, 
+                    FullnessPackage.Full, 
+                    QueryType.Response);
+                
+                await BroadcastMessageAsync(socket, package, ctxSource.Token);
             }
             else
             {
-                Console.WriteLine("К нам пытался ворваться клиент");
+                Console.WriteLine($"К нам пытался ворваться клиент {GetRemoteIpAdress(socket)}");
                 await socket.DisconnectAsync(false);
             }
 
             while (socket.Connected)
             {
                 var content = new List<byte>();
-                var message = string.Empty;
+                string message;
                 contentLength = await socket.ReceiveAsync(buffer, SocketFlags.None, ctxSource.Token);
-                if (!IsResponseValid(buffer) || IsHello(buffer))
+                if (!IsQueryValid(buffer) || 
+                    IsHello(buffer[Command], buffer[Fullness], buffer[Query] ))
                 {
                     continue;
                 }
-                if (IsBye(buffer))
+                if (IsBye(buffer[Command]))
                 {
                     message = $"С нами прощается {_clients[socket]}.";
                     Console.WriteLine(message);
-                    await BroadcastMessageAsync(socket, message, ctxSource.Token);
+                    
+                    await BroadcastMessageAsync(socket, 
+                        CreatePackage(Encoding.UTF8.GetBytes(message),
+                            SupportCommand.Say, 
+                            FullnessPackage.Full,
+                            QueryType.Response), ctxSource.Token);
+                    
                     await socket.DisconnectAsync(false);
+                    _clients.Remove(socket);
                 }
                 //Only Say Command
                 else
                 {
-                    content.AddRange(GetContent(buffer, contentLength)); ;
-                    if (IsPartial(buffer))
+                    content.AddRange(GetContent(buffer, contentLength));
+                    if (IsPartial(buffer[Fullness]))
                     {
                         continue;
                     }
-
+                    
                     message = Encoding.UTF8.GetString(content.ToArray());
                     Console.WriteLine($"{_clients[socket]}: {message}");
-                    await BroadcastMessageAsync(socket, message, ctxSource.Token);
-
+                    
+                    var resultContent = content.ToArray();
                     content.Clear();
+
+                    var packages = GetResponseSayPackages(resultContent);
+
+                    packages.ForEach(
+                        async p => await BroadcastMessageAsync(socket, p, ctxSource.Token));
+
                 }
             }
         }
@@ -104,52 +146,62 @@ public class TcpServer
         }
     }
 
+    private static List<byte[]> GetResponseSayPackages(byte[] resultContent)
+    {
+        var packages = new List<byte[]>();
 
-    private async Task BroadcastMessageAsync(Socket socket, string message, 
+        if (resultContent.Length > MaxSizeOfContent)
+        {
+            var chunks = resultContent
+                .Chunk(MaxSizeOfContent).ToList();
+
+            var chuncksCount = chunks.Count;
+
+            for (var i = 0; i < chuncksCount; i++)
+            {
+                var builder = new PackageBuilder(chunks[i].Length)
+                    .WithCommand(SupportCommand.Say)
+                    .WithQueryType(QueryType.Response);
+
+                builder = builder.WithFullness(i == chuncksCount - 1
+                    ? FullnessPackage.Full
+                    : FullnessPackage.Partial);
+
+                packages.Add(builder
+                    .WithContent(chunks[i])
+                    .Build());
+            }
+        }
+        else
+        {
+            packages.Add(new PackageBuilder(resultContent.Length)
+                .WithCommand(SupportCommand.Say)
+                .WithFullness(FullnessPackage.Full)
+                .WithQueryType(QueryType.Response)
+                .WithContent(resultContent)
+                .Build());
+        }
+
+        return packages;
+    }
+
+    private string GetRemoteIpAdress(Socket socket)
+    {
+        return  IPAddress.Parse(((IPEndPoint)socket.RemoteEndPoint!).Address.ToString()) 
+                     + ":" + ((IPEndPoint)socket.RemoteEndPoint).Port;        
+    }
+    
+    private async Task BroadcastMessageAsync(Socket socket, byte[] message, 
         CancellationToken ctx)
     {
         var semaphore = new SemaphoreSlim(1);
         foreach (var client in _clients.Keys)
         {
             await semaphore.WaitAsync(ctx);
-            await client.SendAsync(Encoding.UTF8.GetBytes(message), SocketFlags.None, ctx);
+            await client.SendAsync(message, SocketFlags.None, ctx);
             semaphore.Release(1);
         }
 
         semaphore.Dispose();
     }
-
-    private byte[] GetContent(byte[] buffer, int contentLength) =>
-        buffer.Skip(10).Take(contentLength - 11).ToArray();
-
-    private bool IsResponseValid(byte[] buffer) => 
-        HasStart(buffer) && HasEnd(buffer) 
-                         && IsCorrectProtocol(buffer)
-                         && IsFullOrPartial(buffer);
-
-    private bool HasStart(byte[] buffer) => 
-        buffer[..3].Equals(Package11207Helper.BasePackage[..3]);
-    
-    private bool HasEnd(byte[] buffer) => 
-        buffer[^1].Equals(Package11207Helper.LastByte);
-    
-    private bool IsCorrectProtocol(byte[] buffer) => 
-        buffer[3..8].Equals(Package11207Helper.BasePackage[3..8]);
-    private bool IsFullOrPartial(byte[] buffer) => 
-        buffer[9] == (byte)FullnessPackage.Partial
-        || buffer[9] == (byte)FullnessPackage.Full;
-
-    private bool IsFull(byte[] buffer) =>
-        buffer[9] == (byte)FullnessPackage.Full;
-
-    private bool IsPartial(byte[] buffer) =>
-        buffer[9] == (byte)FullnessPackage.Partial;
-
-    private bool IsHello(byte[] buffer) =>
-        buffer[8] == (byte)SupportCommand.Hello
-        && buffer[9] == (byte)FullnessPackage.Full;
-    private bool IsSay(byte[] buffer) => 
-        buffer[8] == (byte)SupportCommand.Say;
-    private bool IsBye(byte[] buffer) => 
-        buffer[8] == (byte)SupportCommand.Bye;
 }

@@ -6,7 +6,12 @@ namespace TcpChatClient;
 public class TcpClient
 {
     private readonly Socket _socket;
-    
+
+    public TcpClient(Socket socket)
+    {
+        _socket = socket;
+    }
+
 
     public async Task ConnectAsync(IPAddress host, int port)
     {
