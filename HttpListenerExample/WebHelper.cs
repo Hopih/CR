@@ -23,7 +23,7 @@ public static class WebHelper
         if (weather != null)
         {
             httpListenerContext.Response.StatusCode = 200;
-            httpListenerContext.Response.ContentType = "application/json";
+            httpListenerContext.Response.ContentType = "application/json; charset=utf-8";
             await httpListenerContext.Response.OutputStream.WriteAsync(Encoding.UTF8.GetBytes(weather), ctx);
             return;
         }
@@ -147,10 +147,10 @@ public static class WebHelper
         context.Response.StatusCode = 200;
         context.Response.ContentType = Path.GetExtension(path) switch
         {
-            ".js" => "application/javascript",
-            ".css" => "text/css",
-            ".html" => "text/html",
-            _ => "text/plain"
+            ".js" => "application/javascript; charset=utf-8",
+            ".css" => "text/css; charset=utf-8",
+            ".html" => "text/html; charset=utf-8",
+            _ => "text/plain; charset=utf-8"
         };
         var file = await File.ReadAllBytesAsync(path, ctx);
         await context.Response.OutputStream.WriteAsync(file, ctx);
