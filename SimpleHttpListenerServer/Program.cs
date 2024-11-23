@@ -1,9 +1,12 @@
-﻿using System.Net;
+﻿using System.ComponentModel.DataAnnotations;
+using System.Net;
 using System.Text;
 using System.Text.Json;
 using SimpleHttpListenerServer;
+using SimpleHttpListenerServer.Entities;
 
 var httpListener = new HttpListener();
+var dbContext = new DbContext();
 httpListener.Prefixes.Add("http://localhost:5000/");
 httpListener.Start();
 var quotesApiClient = new QuotesApiClient();
@@ -17,6 +20,16 @@ while (httpListener.IsListening)
     {
         switch (request.Url?.LocalPath)
         {
+            case "/user/signup" when request.HttpMethod == "POST":
+                var user = await SaveUser(context, ctx.Token);
+                if (user == null)
+                    break;
+                await response.OutputStream.WriteAsync(
+                    Encoding.UTF8.GetBytes(JsonSerializer.Serialize(user, new JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                    })), ctx.Token);
+                break;
             case "/home" when request.HttpMethod == "GET":
                 context.Response.StatusCode = 200;
                 context.Response.ContentType = "text/html";
@@ -63,9 +76,46 @@ async Task ShowResourseFile(HttpListenerContext context, CancellationToken token
         "css" => "text/css",
         "js" => "text/javascript",
         "svg" => "image/svg+xml",
+        "ico" => "image/x-icon",
         _ => throw new ArgumentOutOfRangeException()
     };
     
     var file = await File.ReadAllBytesAsync($"public/{path}", token);
     await context.Response.OutputStream.WriteAsync(file, token);
+}
+
+async Task<User?> SaveUser(HttpListenerContext context, CancellationToken token)
+{
+    using var sr = new StreamReader(context.Request.InputStream);
+    var userLoginModel = JsonSerializer.Deserialize<User>(
+        await sr.ReadToEndAsync(token).ConfigureAwait(false), 
+        new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        });
+    //var userValidator = new UserValidator();
+    var userValidatorRule = new UserValidationRules();
+    var userValidationRulesExample = userValidatorRule.Validate(userLoginModel);
+    //var validationResult = userValidator.Validate(new ValidationContext(userLoginModel)).ToList(); 
+    if (!userValidationRulesExample.IsValid)
+    {
+        context.Response.StatusCode = 400;
+        context.Response.ContentType = "application/json";
+        context.Response.ContentEncoding = Encoding.UTF8;
+        /*
+        await context.Response.OutputStream.WriteAsync(
+            Encoding.UTF8.GetBytes($"Ваши данные не прошли проверку! Информация по ошибке: " +
+                                   $"{string.Join("\n\r", validationResult.Select(er => er.ErrorMessage))}"),
+            token);
+        */
+        await context.Response.OutputStream.WriteAsync(
+            Encoding.UTF8.GetBytes($"Ваши данные не прошли проверку! Информация по ошибке: " +
+                                   $"{string.Join("\n\r", userValidationRulesExample.Errors.Select(er => er.ErrorMessage))}"),
+            token);
+        return null;
+    }
+    
+    userLoginModel!.Password = MyPasswordHasher.Hash(userLoginModel.Password);
+    
+    return await dbContext.CreateUser(userLoginModel!.Login, userLoginModel.Password, token);
 }

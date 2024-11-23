@@ -8,13 +8,14 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <Folder Include="public\" />
-    </ItemGroup>
-
-    <ItemGroup>
       <None Update="public\**">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="FluentValidation" Version="11.7.1" />
+      <PackageReference Include="Npgsql" Version="9.0.1" />
     </ItemGroup>
 
 </Project>
