@@ -10,4 +10,5 @@ public class User
     //[RegularExpression(@"^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$", 
     //    ErrorMessage = "Password must be between 8 and 20 characters, at least one digit, special symbol, and upper case letter.")]
     public string Password { get; set; }
+    public string Role { get; set; }
 }

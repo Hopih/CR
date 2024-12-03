@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.Data;
+using System.Net;
 using Npgsql;
 using SimpleHttpListenerServer.Entities;
 
@@ -32,5 +33,33 @@ public class DbContext
         {
             await _dbConnection.CloseAsync();
         }
+    }
+
+
+    public async Task<User?> GetUser(string login, CancellationToken cancellationToken = default)
+    {
+        await _dbConnection.OpenAsync(cancellationToken);
+        try
+        {
+            const string sqlQuery = "SELECT * FROM users WHERE login = @login and password = @password";
+            var cmd = new NpgsqlCommand(sqlQuery, _dbConnection);
+            cmd.Parameters.AddWithValue("login", login);
+            var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+            if(reader.HasRows && await reader.ReadAsync(cancellationToken))
+            {
+                return new User
+                {
+                    Id = reader.GetInt64("id"),
+                    Password = reader.GetString("password"),
+                    Role = reader.GetString("role"),
+                };
+            }
+        }
+        finally
+        {
+            await _dbConnection.CloseAsync();
+        }
+
+        return null;
     }
 }
