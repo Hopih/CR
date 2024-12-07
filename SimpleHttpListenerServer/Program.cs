@@ -9,6 +9,7 @@ using SimpleHttpListenerServer.Models;
 
 var httpListener = new HttpListener();
 var dbContext = new DbContext();
+var key = Environment.GetEnvironmentVariable("MY_SUPERPUPER_KEY");
 httpListener.Prefixes.Add("http://localhost:5000/");
 httpListener.Start();
 var quotesApiClient = new QuotesApiClient();
@@ -23,7 +24,16 @@ while (httpListener.IsListening)
         switch (request.Url?.LocalPath)
         {
             case"/user/login" when request.HttpMethod == "POST":
-                
+                var authResult = await Login(context, ctx.Token);
+                if (authResult != null)
+                {
+                    await response.OutputStream.WriteAsync(
+                        Encoding.UTF8.GetBytes(JsonSerializer.Serialize(authResult, new JsonSerializerOptions
+                        {
+                            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                        })), ctx.Token);
+                }
+                break;
             case "/user/signup" when request.HttpMethod == "POST":
                 var user = await SaveUser(context, ctx.Token);
                 if (user == null)
@@ -41,6 +51,14 @@ while (httpListener.IsListening)
                 await context.Response.OutputStream.WriteAsync(file, ctx.Token);
                 break;
             case"/quotes/random" when request.HttpMethod == "GET":
+                var auth = await AuthorizationJWT(context, ctx.Token);
+                if (auth == null)
+                {
+                    context.Response.StatusCode = (int)HttpStatusCode.Unauthorized;
+                    context.Response.ContentType = "text/html";
+                    await context.Response.OutputStream.WriteAsync(
+                        "Вы не авторизованы!"u8.ToArray(), ctx.Token);
+                }
                 var quote = await quotesApiClient.GetRandomQuoteAsync(ctx.Token);
                 response.StatusCode = 200;  
                 response.ContentType = "application/json";
@@ -51,7 +69,9 @@ while (httpListener.IsListening)
                     })), ctx.Token);
                 break;
             case "/board" when request.HttpMethod == "GET":
-                
+                var authUser = await AuthorizationJWT(context, ctx.Token);
+                Console.WriteLine(authUser?.Id);
+                break;
             default:
                 await ShowResourseFile(context, ctx.Token);
                 break;
@@ -65,7 +85,7 @@ httpListener.Stop();
 httpListener.Close();
 
 
-async Task Login(HttpListenerContext context, CancellationToken cancellationToken)
+async Task<AuthResult?> Login(HttpListenerContext context, CancellationToken cancellationToken)
 {
     using var sr = new StreamReader(context.Request.InputStream);
     var userLoginModel = JsonSerializer.Deserialize<UserLoginModel>(
@@ -80,7 +100,7 @@ async Task Login(HttpListenerContext context, CancellationToken cancellationToke
         context.Response.ContentType = "application/json";
         await context.Response.OutputStream.WriteAsync("Не переданы данные логина или пароля!"u8.ToArray(),
             cancellationToken).ConfigureAwait(false);
-        return;
+        return null;
     }
     
     var user = await dbContext.GetUser(userLoginModel!.Login, cancellationToken);
@@ -90,7 +110,7 @@ async Task Login(HttpListenerContext context, CancellationToken cancellationToke
         context.Response.ContentType = "application/json";
         await context.Response.OutputStream.WriteAsync(Encoding.UTF8.GetBytes($"Не найден пользователь с логином {userLoginModel.Login}"),
             cancellationToken).ConfigureAwait(false);
-        return;
+        return null;
     }
 
     if (!MyPasswordHasher.Validate(user.Password, userLoginModel.Password))
@@ -99,18 +119,25 @@ async Task Login(HttpListenerContext context, CancellationToken cancellationToke
         context.Response.ContentType = "application/json";
         await context.Response.OutputStream.WriteAsync(Encoding.UTF8.GetBytes("Пароль не верный!"),
             cancellationToken).ConfigureAwait(false);
-        return;
+        return null;
     }
-
+    
+    /*
     var sessionId = Guid.NewGuid().ToString();
     LocalCache.Cache.Add(sessionId, new CacheItem
     {
         UserId = user.Id,
         Role = user.Role
     });
-    context.Response.Headers["Set-Cookie"] = $"id={sessionId};path=/; expires={DateTime.Now.AddHours(10)}";
+    */
+    
+    //context.Response.Headers["Set-Cookie"] = $"id={sessionId};path=/; expires={DateTime.Now.AddHours(10)}";
     context.Response.StatusCode = 200;
     context.Response.ContentType = "text/html";
+    return new AuthResult
+    {
+        Token = JwtWorker.GenerateJwtToken(user)
+    };
 }
 
 
@@ -193,6 +220,37 @@ async Task<CacheItem?> Authorization(HttpListenerContext context, CancellationTo
     if (session != null && LocalCache.Cache.TryGetValue(session[1], out var cacheItem))
     {
         return cacheItem;
+    }
+
+    context.Response.ContentType = "text/html";
+    context.Response.ContentEncoding = Encoding.UTF8;
+    
+    await context.Response.OutputStream.WriteAsync(
+        "Вы давно не использовали сайт, повторно войдите!"u8.ToArray(),
+        cancellationToken).ConfigureAwait(false);
+    
+    return null;
+}
+
+
+async Task<User?> AuthorizationJWT(HttpListenerContext context, CancellationToken cancellationToken)
+{
+    var auth = context.Request.Headers["Authorization"];
+    if (auth == null)
+    {
+        context.Response.StatusCode = 403;
+        context.Response.ContentType = "text/html";
+        context.Response.ContentEncoding = Encoding.UTF8;
+        await context.Response.OutputStream.WriteAsync("Вы давно не использовали сайт, повторно войдите!"u8.ToArray(),
+            cancellationToken).ConfigureAwait(false);
+        return null;
+    }
+    
+    var token = auth.Split()[1];
+    var tokenValidationResult = JwtWorker.ValidateJwtToken(token);
+    if (tokenValidationResult.isSuccess)
+    {
+        return tokenValidationResult.user;
     }
 
     context.Response.ContentType = "text/html";

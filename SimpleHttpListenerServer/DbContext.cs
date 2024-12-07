@@ -26,7 +26,8 @@ public class DbContext
             {
                 Login = login,
                 Password = password,
-                Id = Convert.ToInt32(result)
+                Id = Convert.ToInt32(result),
+                Role = "user"
             };
         }
         finally
@@ -41,7 +42,7 @@ public class DbContext
         await _dbConnection.OpenAsync(cancellationToken);
         try
         {
-            const string sqlQuery = "SELECT * FROM users WHERE login = @login and password = @password";
+            const string sqlQuery = "SELECT * FROM users WHERE login = @login";
             var cmd = new NpgsqlCommand(sqlQuery, _dbConnection);
             cmd.Parameters.AddWithValue("login", login);
             var reader = await cmd.ExecuteReaderAsync(cancellationToken);
@@ -50,6 +51,7 @@ public class DbContext
                 return new User
                 {
                     Id = reader.GetInt64("id"),
+                    Login = login,
                     Password = reader.GetString("password"),
                     Role = reader.GetString("role"),
                 };

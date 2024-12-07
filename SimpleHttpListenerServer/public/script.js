@@ -12,7 +12,10 @@ async function createSticker() {
     const sticker = document.createElement('div');
     sticker.className = 'sticker';
     
-    let quoteResponse = await fetch("/quotes/random");
+    let quoteResponse = await fetch("/quotes/random",{
+        method: 'GET',
+        headers: {'Authorization': `Bearer ${localStorage.getItem('token')}`},
+    } );
     if(quoteResponse.ok) {
         let quote = await quoteResponse.json();
         sticker.innerHTML = `${quote.content} (c) ${quote.originator.name}`;
@@ -147,7 +150,7 @@ function addResizeFeature(sticker) {
 
     let startWidth, startHeight, startX, startY;
 
-    resizeHandle.addEventListener('mousedown', function(e) {
+    resizeHandle.addEventListener('mousedown', function (e) {
         e.preventDefault();
         startWidth = sticker.offsetWidth;
         startHeight = sticker.offsetHeight;
@@ -184,4 +187,113 @@ function addResizeFeature(sticker) {
         document.removeEventListener('mousemove', onMouseMove);
         document.removeEventListener('mouseup', onMouseUp);
     }
+}    
+document.addEventListener('DOMContentLoaded', function() {
+
+document.getElementById('signup-link').addEventListener('click', function(event) {
+    console.log('Sign Up link clicked');
+    event.preventDefault();
+    createForm('Register', [
+        { type: 'text', placeholder: 'Username', name: 'login'},
+        { type: 'password', placeholder: 'Password', name: 'password'},
+    ]);
+});
+
+document.getElementById('signin-link').addEventListener('click', function(event) {
+    console.log('Sign In link clicked');
+    event.preventDefault();
+    createForm('Login', [
+        { type: 'text', placeholder: 'Username', name: 'login'},
+        { type: 'password', placeholder: 'Password', name: 'password'}
+    ]);
+});
+});
+
+
+function createForm(title, fields) {
+    const board = document.body.querySelector('.board');
+    // Удаляем предыдущие формы, если они существуют
+    const existingForm = document.querySelector('.form-container');
+    if (existingForm) {
+        existingForm.remove();
+    }
+
+    const formContainer = document.createElement('div');
+    formContainer.className = 'form-container';
+
+    const formTitle = document.createElement('h2');
+    formTitle.textContent = title;
+    formContainer.appendChild(formTitle);
+
+    const form = document.createElement('form');
+
+    fields.forEach((field, index) => {
+        const input = document.createElement('input');
+        input.type = field.type;
+        input.placeholder = field.placeholder;
+        input.name = field.name || `field${index}`;  // Добавляем name, если его нет
+        input.required = true;
+        form.appendChild(input);
+    });
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = title === 'Register' ? 'Sign Up' : 'Login';
+    form.appendChild(button);
+    if(button.textContent === 'Sign Up') {
+        button.addEventListener('click', async function(event) {
+            await signup(form);
+        });
+    }
+    else{
+        button.addEventListener('click', async function(event) {
+            await login(form);
+        });   
+    }
+
+    formContainer.appendChild(form);
+    board.appendChild(formContainer);
 }
+
+async function signup(form){
+    let user = {};
+    let formData = new FormData(form);
+    formData.forEach((value, key) => (user[key] = value));
+    
+    let result = await fetch('/user/signup', {
+        method: 'POST',
+        headers: {},
+        body: JSON.stringify(user)
+    });
+    
+    if(result.status === 200){
+        form.parentElement.remove();
+        return;
+    }
+    let errorText = document.createElement('div');
+    errorText.innerHTML = result.message;
+    form.parentElement.appendChild(errorText);
+}
+
+async function login(form){
+    let userLogin = {};
+    let formData = new FormData(form);
+    formData.forEach((value, key) => (userLogin[key] = value));
+
+    let result = await fetch('/user/login', {
+        method: 'POST',
+        headers: {},
+        body: JSON.stringify(userLogin)
+    });
+
+    if(result.status === 200){
+        form.parentElement.remove();
+        const responseData = await result.json();
+        localStorage.setItem('token', responseData.token);
+        return;
+    }
+    let errorText = document.createElement('div');
+    errorText.innerHTML = 'Ошибка: ' + result.statusText;
+    form.parentElement.appendChild(errorText);
+} 
+    
