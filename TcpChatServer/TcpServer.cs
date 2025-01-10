@@ -92,7 +92,7 @@ public class TcpServer
             }
             else
             {
-                Console.WriteLine($"К нам пытался ворваться клиент {GetRemoteIpAdress(socket)}");
+                Console.WriteLine($"К нам пытался ворваться клиент {GetRemoteIpAddress(socket)}");
                 _clients.Remove(socket);
                 await socket.DisconnectAsync(false);
             }
@@ -152,7 +152,7 @@ public class TcpServer
         }
     }
 
-    private string GetRemoteIpAdress(Socket socket)
+    private string GetRemoteIpAddress(Socket socket)
     {
         return  IPAddress.Parse(((IPEndPoint)socket.RemoteEndPoint!).Address.ToString()) 
                      + ":" + ((IPEndPoint)socket.RemoteEndPoint).Port;        
