@@ -20,7 +20,9 @@ public class PackageBuilder
 
     private void CreateBasePackage()
     {
-        Array.Copy(BasePackage, _package, BasePackage.Length);
+        Array.Copy(BasePackage, 
+            _package, 
+            BasePackage.Length);
         
         _package[^1] = LastByte;
     }

@@ -4,7 +4,8 @@ using CodeJam;
 using TcpChatServer;
 using static TcpChatServer.Package11207Helper;
 
-var clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+using var clientSocket = new Socket(AddressFamily.InterNetwork,
+    SocketType.Stream, ProtocolType.Tcp);
 try
 {
     await clientSocket.ConnectAsync("localhost", 5000);
@@ -60,7 +61,6 @@ catch (Exception ex)
 finally
 {
     await clientSocket.DisconnectAsync(false);
-    clientSocket.Dispose();
 }
 
 async Task<string> GetResponse(Socket socket)

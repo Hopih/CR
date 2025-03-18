@@ -2,7 +2,7 @@
 using System.Net.Sockets;
 using System.Text;
 
-var socketServer = new Socket(
+using var socketServer = new Socket(
     AddressFamily.InterNetwork,
     SocketType.Stream,
     ProtocolType.Tcp);
@@ -28,6 +28,8 @@ do
 
     result = await connectionSocket.ReceiveAsync(
         new ArraySegment<byte>(buffer), SocketFlags.None);
+    resultMessage.Append(Encoding.UTF8.GetString(buffer));
+    
 } while (result > 0);
 
 
@@ -40,8 +42,6 @@ var bytesSent = await connectionSocket.SendAsync(
 Console.WriteLine($"send{bytesSent}");
 
 await socketServer.DisconnectAsync(true);
-
-socketServer.Dispose();
 
 
 
