@@ -108,14 +108,12 @@ public static class Package11207Helper
         }
         else
         {
-            packages.Add(new PackageBuilder(resultContent.Length)
-                .WithCommand(supportCommand)
-                .WithFullness(FullnessPackage.Full)
-                .WithQueryType(queryType)
-                .WithContent(resultContent)
-                .Build());
+            packages.Add(CreatePackage(
+                resultContent, 
+                supportCommand,
+                FullnessPackage.Full,
+                queryType));
         }
         return packages;
     }
-    
 }
