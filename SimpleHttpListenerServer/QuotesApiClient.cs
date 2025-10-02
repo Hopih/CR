@@ -7,31 +7,26 @@ public class QuotesApiClient
 {
     private static HttpClient _httpClient = new()
     {
-        BaseAddress = new Uri("https://quotes15.p.rapidapi.com"),
+        BaseAddress = new Uri("https://api.api-ninjas.com"),
         DefaultRequestHeaders =
         {
-            {
-                "x-rapidapi-host", "quotes15.p.rapidapi.com"
-            },
-            {
-                "x-rapidapi-key", "11c5aa0932msh6f977a8bfc17035p154120jsn86e885da8be0"
-            }
+            {"X-API-Key", "zV3MLERI3/LIKlGWPXoeKQ==w55oaGmxBTqPJ24n"},
         }
     };
 
 
     public async Task<QuotesApiResponse> GetRandomQuoteAsync(CancellationToken cancellationToken)
     {
-        var result = await _httpClient.GetFromJsonAsync<QuotesApiResponse>("/quotes/random/?language_code=ru", 
+        var result = await _httpClient.GetFromJsonAsync<List<QuotesApiResponse>>("/v1/quotes", 
             new JsonSerializerOptions
             {
-                PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
             }, cancellationToken: cancellationToken);
         if (result == null)
         {
             throw new ApplicationException("No quotes available");
         }
 
-        return result;
+        return result[0];
     }
 }

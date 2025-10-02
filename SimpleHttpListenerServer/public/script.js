@@ -17,8 +17,8 @@ async function createSticker() {
         headers: {'Authorization': `Bearer ${localStorage.getItem('token')}`},
     } );
     if(quoteResponse.ok) {
-        let quote = await quoteResponse.json();
-        sticker.innerHTML = `${quote.content} (c) ${quote.originator.name}`;
+        let quoteContent = await quoteResponse.json();
+        sticker.innerHTML = `${quoteContent.quote} (c) ${quoteContent.author}`;
     }
     
     const board = document.getElementById('board');

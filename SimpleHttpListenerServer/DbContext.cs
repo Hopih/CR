@@ -16,7 +16,7 @@ public class DbContext
         await _dbConnection.OpenAsync(cancellationToken);
         try
         {
-            const string sqlQuery = "INSERT INTO users (login, password) VALUES (@login, @password) RETURNING id;";
+            const string sqlQuery = $"INSERT INTO users (login, {nameof(password)}) VALUES (@login, @password) RETURNING id;";
             var cmd = new NpgsqlCommand(sqlQuery, _dbConnection);
             cmd.Parameters.AddWithValue("login", login);
             cmd.Parameters.AddWithValue("password", password);
