@@ -1,9 +1,12 @@
+import { saveElements } from "./api.js";
+
 export async function createSticker(board) {
     const sticker = document.createElement('div');
     sticker.className = 'sticker';
+    sticker.dataset.id = crypto.randomUUID(); // уникальный id
 
     try {
-        const quoteResponse = await fetch("/quotes/random", {
+        const quoteResponse = await fetch("/api/quotes/random", {
             method: 'GET',
             headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
         });
@@ -32,6 +35,28 @@ export async function createSticker(board) {
     makeEditable(sticker);
 
     return sticker;
+}
+
+export function serializeStickers(boardId) {
+    const stickers = [...document.querySelectorAll(".sticker")];
+    return stickers.map(st => ({
+        id: st.dataset.id,
+        type: "sticker",
+        x: parseInt(st.style.left),
+        y: parseInt(st.style.top),
+        width: parseInt(st.style.width),
+        height: parseInt(st.style.height),
+        zIndex: parseInt(st.style.zIndex || 0),
+        rotation: 0,
+        text: st.innerText,
+        color: st.style.backgroundColor || "#ffe58a",
+        fontSize: parseInt(st.style.fontSize || 16)
+    }));
+}
+
+export async function saveBoard(boardId) {
+    const elements = serializeStickers(boardId);
+    await saveElements(boardId, elements);
 }
 
 function enableStickerTransition(sticker) {

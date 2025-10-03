@@ -37,7 +37,7 @@ public sealed class ApiRouter(string connectionString)
                     await CreateGuestBoard(ctx, ct); 
                     return;
                 
-                case "api/quote/random" when method == "GET":
+                case "/api/quotes/random" when method == "GET":
                     await GetRandomQuotes(ctx, ct);
                     return;
             }
