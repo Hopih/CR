@@ -178,7 +178,7 @@ public static class WebHelper
 
             if (MyPasswordHasher.Validate(user.Password, userLoginModel.Password))
             {
-                context.Response.Cookies.Add(new Cookie
+                context.Response.SetCookie(new Cookie
                 {
                     Name = "session-id",
                     Value = sessionId,

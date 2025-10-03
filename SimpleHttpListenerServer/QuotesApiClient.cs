@@ -5,7 +5,7 @@ namespace SimpleHttpListenerServer;
 
 public class QuotesApiClient
 {
-    private static HttpClient _httpClient = new()
+    private static readonly HttpClient HttpClient = new()
     {
         BaseAddress = new Uri("https://api.api-ninjas.com"),
         DefaultRequestHeaders =
@@ -13,20 +13,20 @@ public class QuotesApiClient
             {"X-API-Key", "zV3MLERI3/LIKlGWPXoeKQ==w55oaGmxBTqPJ24n"},
         }
     };
+    
+    private readonly JsonSerializerOptions _globalJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
 
 
     public async Task<QuotesApiResponse> GetRandomQuoteAsync(CancellationToken cancellationToken)
     {
-        var result = await _httpClient.GetFromJsonAsync<List<QuotesApiResponse>>("/v1/quotes", 
-            new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-            }, cancellationToken: cancellationToken);
-        if (result == null)
-        {
-            throw new ApplicationException("No quotes available");
-        }
-
-        return result[0];
+        var result = await HttpClient.GetFromJsonAsync<List<QuotesApiResponse>>("/v1/quotes", 
+            _globalJsonOptions, cancellationToken: cancellationToken);
+        
+        return result == null 
+            ? throw new ApplicationException("No quotes available") : 
+            result[0];
     }
 }

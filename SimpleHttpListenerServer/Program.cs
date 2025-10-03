@@ -45,12 +45,10 @@ while (httpListener.IsListening)
                     })), ctx.Token);
                 break;
             case "/home" when request.HttpMethod == "GET":
-                context.Response.StatusCode = 200;
-                context.Response.ContentType = "text/html";
-                var file = await File.ReadAllBytesAsync("public/index.html", ctx.Token);
-                await context.Response.OutputStream.WriteAsync(file, ctx.Token);
+                await ShowResourceFile(context, ctx.Token);
                 break;
             case"/quotes/random" when request.HttpMethod == "GET":
+                /*
                 var auth = await AuthorizationJWT(context, ctx.Token);
                 if (auth == null)
                 {
@@ -59,6 +57,7 @@ while (httpListener.IsListening)
                     await context.Response.OutputStream.WriteAsync(
                         "Вы не авторизованы!"u8.ToArray(), ctx.Token);
                 }
+                */
                 var quote = await quotesApiClient.GetRandomQuoteAsync(ctx.Token);
                 response.StatusCode = 200;  
                 response.ContentType = "application/json";
@@ -73,7 +72,7 @@ while (httpListener.IsListening)
                 Console.WriteLine(authUser?.Id);
                 break;
             default:
-                await ShowResourseFile(context, ctx.Token);
+                await ShowResourceFile(context, ctx.Token);
                 break;
         }
         
@@ -141,29 +140,48 @@ async Task<AuthResult?> Login(HttpListenerContext context, CancellationToken can
 }
 
 
-async Task ShowResourseFile(HttpListenerContext context, CancellationToken token)
+async Task ShowResourceFile(HttpListenerContext context, CancellationToken token)
 {
     if (context.Request.Url is null)
     {
         context.Response.StatusCode = 404;
         return;
     }
-    var path = context.Request.Url?.LocalPath.Split('/')[^1];
+
+    // путь относительно public/
+    var relativePath = context.Request.Url.LocalPath.TrimStart('/');
+    if (string.IsNullOrEmpty(relativePath) || relativePath == "home")
+        relativePath = "index.html"; // по умолчанию отдаём index.html
     
-    
-    context.Response.StatusCode = 200;
-    context.Response.ContentType = path!.Split('.')[^1] switch
+
+    var filePath = Path.Combine("public", relativePath);
+
+    if (!File.Exists(filePath))
     {
-        "html" => "text/html",
-        "css" => "text/css",
-        "js" => "text/javascript",
-        "svg" => "image/svg+xml",
-        "ico" => "image/x-icon",
-        _ => throw new ArgumentOutOfRangeException()
+        context.Response.StatusCode = 404;
+        return;
+    }
+
+    string contentType = Path.GetExtension(filePath).ToLower() switch
+    {
+        ".html" => "text/html; charset=utf-8",
+        ".css"  => "text/css",
+        ".js"   => "application/javascript",
+        ".svg"  => "image/svg+xml",
+        ".ico"  => "image/x-icon",
+        ".png"  => "image/png",
+        ".jpg" or ".jpeg" => "image/jpeg",
+        ".gif"  => "image/gif",
+        _       => "application/octet-stream"
     };
-    
-    var file = await File.ReadAllBytesAsync($"public/{path}", token);
-    await context.Response.OutputStream.WriteAsync(file, token);
+
+    context.Response.StatusCode = 200;
+    context.Response.ContentType = contentType;
+
+    var fileBytes = await File.ReadAllBytesAsync(filePath, token);
+    await context.Response.OutputStream.WriteAsync(fileBytes, token);
+
+    context.Response.Close();
 }
 
 async Task<User?> SaveUser(HttpListenerContext context, CancellationToken token)
@@ -177,7 +195,8 @@ async Task<User?> SaveUser(HttpListenerContext context, CancellationToken token)
         });
     //var userValidator = new UserValidator();
     var userValidatorRule = new UserValidationRules();
-    var userValidationRulesExample = userValidatorRule.Validate(userLoginModel);
+    var userValidationRulesExample = userValidatorRule.Validate(userLoginModel!);
+    
     //var validationResult = userValidator.Validate(new ValidationContext(userLoginModel)).ToList(); 
     if (!userValidationRulesExample.IsValid)
     {
