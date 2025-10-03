@@ -1,0 +1,232 @@
+using System.Net;
+using Npgsql;
+using SimpleHttpListenerServer.Database;
+using SimpleHttpListenerServer.Entities;
+using SimpleHttpListenerServer.Models;
+
+namespace SimpleHttpListenerServer.Helpers;
+
+public sealed class ApiRouter(string connectionString)
+{
+    private QuotesApiClient quotesApiClient = new QuotesApiClient();
+    public async Task HandleAsync(HttpListenerContext ctx, CancellationToken ct)
+    {
+        var path = ctx.Request.Url?.AbsolutePath ?? "/";
+        var method = ctx.Request.HttpMethod;
+
+        try
+        {
+            switch (path)
+            {
+                // AUTH
+                case "/api/user/signup" when method == "POST":
+                    await Signup(ctx, ct); 
+                    return;
+                case "/api/user/login" when method == "POST":
+                    await Login(ctx, ct);  
+                    return;
+                // BOARDS (authorized)
+                case "/api/boards" when method == "GET":
+                    await GetUserBoards(ctx, ct); 
+                    return;
+                case "/api/boards" when method == "POST":
+                    await CreateUserBoard(ctx, ct); 
+                    return;
+                // GUEST BOARD
+                case "/api/guest/board" when method == "POST":
+                    await CreateGuestBoard(ctx, ct); 
+                    return;
+                
+                case "api/quote/random" when method == "GET":
+                    await GetRandomQuotes(ctx, ct);
+                    return;
+            }
+
+            // ELEMENTS (GET/POST) with boardId
+            var elementsGet = System.Text.RegularExpressions.Regex.Match(path, "^/api/boards/([0-9a-fA-F-]+)/elements$");
+            if (elementsGet.Success && method == "GET")
+            {
+                var boardId = Guid.Parse(elementsGet.Groups[1].Value);
+                await GetBoardElements(ctx, boardId, ct);
+                return;
+            }
+
+            var elementsBulk = System.Text.RegularExpressions.Regex.Match(path, "^/api/boards/([0-9a-fA-F-]+)/elements/bulk$");
+            if (elementsBulk.Success && method == "POST")
+            {
+                var boardId = Guid.Parse(elementsBulk.Groups[1].Value);
+                await UpsertBoardElements(ctx, boardId, ct);
+                return;
+            }
+
+            await ctx.Response.WriteErrorAsync(404, "not_found", ct);
+        }
+        catch (Exception ex)
+        {
+            await ctx.Response.WriteErrorAsync(500, ex.Message, ct);
+        }
+    }
+
+    private async Task Signup(HttpListenerContext ctx, CancellationToken ct)
+    {
+        var dto = await ctx.Request.ReadJsonAsync<SignupRequest>(ct);
+        if (dto is null )
+        {
+            await ctx.Response.WriteErrorAsync(400, "login_and_password_required", ct);
+            return;
+        }
+        
+        var validator = new UserValidationRules();
+        var result = await validator.ValidateAsync(dto, ct);
+
+        if (!result.IsValid)
+        {
+            await ctx.Response.WriteJsonAsync( new {
+                errors = result.Errors.Select(e => e.ErrorMessage).ToList()
+            }, 400, ct);
+            return;
+        }
+
+        var repo = new UsersRepository(connectionString);
+        try
+        {
+            var userId = await repo.CreateUserAsync(dto.Login, dto.Password, ct);
+            if (userId is null)
+            {
+                await ctx.Response.WriteErrorAsync(500, "signup_failed", ct);
+                return;
+            }
+            await ctx.Response.WriteJsonAsync(new { id = userId }, 201, ct);
+        }
+        catch (PostgresException pg) when (pg.SqlState == "23505")
+        {
+            await ctx.Response.WriteErrorAsync(409, "login_already_exists", ct);
+        }
+    }
+
+    private async Task GetRandomQuotes(HttpListenerContext ctx, CancellationToken ct)
+    {
+        var quote = await quotesApiClient.GetRandomQuoteAsync(ct);
+        await ctx.Response.WriteJsonAsync(quote, 200, ct);
+    }
+
+    private async Task Login(HttpListenerContext ctx, CancellationToken ct)
+    {
+        var dto = await ctx.Request.ReadJsonAsync<LoginRequest>(ct);
+        if (dto is null) { await ctx.Response.WriteErrorAsync(400, "bad_request", ct); return; }
+
+        var repo = new UsersRepository(connectionString);
+        var row = await repo.GetByLoginAsync(dto.Login, ct);
+        if (row is null || !MyPasswordHasher.Validate($"{row.Hash};{row.Salt}", dto.Password))
+        {
+            await ctx.Response.WriteErrorAsync( 401, "invalid_credentials", ct);
+            return;
+        }
+
+        var token = JwtWorker.GenerateJwtToken(new User { Id = row.Id, Role = row.Role });
+        await ctx.Response.WriteJsonAsync(new LoginResponse { Token = token, UserId = row.Id, Role = row.Role }, 200, ct);
+    }
+
+    private async Task GetUserBoards(HttpListenerContext ctx, CancellationToken ct)
+    {
+        var user = ctx.Request.GetUser();
+        if (user is null) { await ctx.Response.WriteErrorAsync(401, "unauthorized", ct); return; }
+
+        var repo = new BoardsRepository(connectionString);
+        var boards = await repo.GetUserBoardsAsync(user.Id, ct);
+        await ctx.Response.WriteJsonAsync(boards.Select(b => new { b.Id, b.Title }).ToList(), 200, ct);
+    }
+
+    private async Task CreateUserBoard(HttpListenerContext ctx, CancellationToken ct)
+    {
+        var user = ctx.Request.GetUser();
+        if (user is null) { await ctx.Response.WriteErrorAsync( 401, "unauthorized", ct); return; }
+
+        var dto = await ctx.Request.ReadJsonAsync<CreateBoardRequest>(ct) ?? new CreateBoardRequest();
+        var repo = new BoardsRepository(connectionString);
+        var id = await repo.CreateUserBoardAsync(user.Id, dto.Title, ct);
+        await ctx.Response.WriteJsonAsync( new { id }, 201, ct);
+    }
+
+    private async Task CreateGuestBoard(HttpListenerContext ctx, CancellationToken ct)
+    {
+        var dto = await ctx.Request.ReadJsonAsync<CreateBoardRequest>(ct) ?? new CreateBoardRequest { Title = "Guest board" };
+        var repo = new BoardsRepository(connectionString);
+        var (boardId, tempKey, expires) = await repo.CreateGuestBoardAsync(dto.Title, TimeSpan.FromDays(3), ct);
+        
+        ctx.Response.AddHeader("Set-Cookie", $"guest_board_key={tempKey}; Path=/; Max-Age={3*24*3600}; HttpOnly");
+        await ctx.Response.WriteJsonAsync(new CreateGuestBoardResponse { BoardId = boardId, TempKey = tempKey, ExpiresAt = expires }, 201, ct);
+    }
+
+    private async Task<bool> CanAccessBoard(Guid boardId, User? user, string? guestKey, CancellationToken ct)
+    {
+        var boards = new BoardsRepository(connectionString);
+        var meta = await boards.GetBoardMetaAsync(boardId, ct);
+        if (meta is null) return false;
+
+        // владелец
+        if (user?.Id != null && meta.Value.OwnerUserId == user.Id) return true;
+
+        // гостевой доступ
+        if (meta.Value is not { IsTemporary: true, TempKey: { } tk, TempExpiresAt: { } exp }) return false;
+        
+        return !string.IsNullOrEmpty(guestKey) 
+               && Guid.TryParse(guestKey, out var gk) 
+               && gk == tk && exp > DateTime.UtcNow;
+    }
+
+    private async Task GetBoardElements(HttpListenerContext ctx, Guid boardId, CancellationToken ct)
+    {
+        var user = ctx.Request.GetUser();
+        var guestKey = ctx.Request.GetCookie("guest_board_key") ?? ctx.Request.Headers["X-Guest-Key"];
+
+        if (!await CanAccessBoard(boardId, user, guestKey, ct))
+        {
+            await ctx.Response.WriteErrorAsync(403, "forbidden", ct);
+            return;
+        }
+
+        var repo = new ElementsRepository(connectionString);
+        var rows = await repo.GetElementsWithStickersAsync(boardId, ct);
+
+        var list = rows.Select(r => new ElementDto {
+            Id = r.Id,
+            Type = r.Type,
+            X = r.X, Y = r.Y, Width = r.Width, Height = r.Height,
+            ZIndex = r.ZIndex, Rotation = r.Rotation,
+            Text = r.Text, Color = r.Color, FontSize = r.FontSize
+        }).ToList();
+
+        await ctx.Response.WriteJsonAsync(list, 200, ct);
+    }
+
+    private async Task UpsertBoardElements(HttpListenerContext ctx, Guid boardId, CancellationToken ct)
+    {
+        var user = ctx.Request.GetUser();
+        var guestKey = ctx.Request.GetCookie("guest_board_key") ?? ctx.Request.Headers["X-Guest-Key"];
+
+        if (!await CanAccessBoard(boardId, user, guestKey, ct))
+        {
+            await ctx.Response.WriteErrorAsync(403, "forbidden", ct);
+            return;
+        }
+
+        var dto = await ctx.Request.ReadJsonAsync<BulkElementsRequest>(ct);
+        if (dto is null || dto.Elements.Count == 0) { await ctx.Response.WriteErrorAsync(400, "no_elements", ct); return; }
+
+        var items = dto.Elements.Select(e => new BoardElement {
+            Id = e.Id == Guid.Empty ? Guid.NewGuid() : e.Id,
+            BoardId = boardId,
+            UserId = user?.Id,
+            Type = e.Type,
+            X = e.X, Y = e.Y, Width = e.Width, Height = e.Height,
+            ZIndex = e.ZIndex, Rotation = e.Rotation,
+            Text = e.Text, Color = e.Color, FontSize = e.FontSize
+        }).ToList();
+
+        var repo = new ElementsRepository(connectionString);
+        await repo.UpsertElementsAsync(boardId, user?.Id, items, ct);
+
+        await ctx.Response.WriteJsonAsync(new { updated = items.Count }, 200, ct);
+    }
+}

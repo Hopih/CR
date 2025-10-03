@@ -4,7 +4,7 @@ namespace SimpleHttpListenerServer.Entities;
 
 public class User
 {
-    public long Id { get; set; }
+    public int Id { get; set; }
     //[RegularExpression(@"^[a-zA-Z0-9_]{5,20}$", ErrorMessage = "Username must be between 5 and 20 characters.")]
     public string Login { get; set; }
     //[RegularExpression(@"^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$", 
