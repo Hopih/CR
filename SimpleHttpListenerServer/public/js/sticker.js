@@ -7,8 +7,7 @@ export async function createSticker(board) {
 
     try {
         const quoteResponse = await fetch("/api/quotes/random", {
-            method: 'GET',
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+            method: 'GET'
         });
 
         if (quoteResponse.ok) {

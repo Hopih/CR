@@ -62,7 +62,10 @@ export async function loadElements(boardId) {
     const res = await fetch(`${API_BASE}/boards/${boardId}/elements`, {
         headers: authHeaders()
     });
-    return await res.json();
+    if(res.ok) {
+        return await res.json();
+    }
+    return [];
 }
 
 export async function saveElements(boardId, elements) {

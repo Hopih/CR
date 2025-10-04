@@ -173,7 +173,10 @@ public static class WebHelper
                 userLoginModel!.Login, ctxToken);
             var sessionId = Guid.NewGuid().ToString();
             //альтернативное использование кеша в памяти
-            //MemoryCache.Cache.Set(sessionId, user);
+            //MemoryCache.Cache.Set(sessionId, user, new MemoryCacheEntryOptions()
+            //{
+              //  AbsoluteExpiration = DateTimeOffset.Now.AddDays(1)
+            //});
             await RedisStore.RedisCache.SetAddAsync(new RedisKey(sessionId), new RedisValue(user.Id.ToString()));
 
             if (MyPasswordHasher.Validate(user.Password, userLoginModel.Password))

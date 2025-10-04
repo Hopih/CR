@@ -1,5 +1,6 @@
 import { login, signup, getBoards, createBoard, createGuestBoard, loadElements } from "./api.js";
 import { createSticker, saveBoard } from "./sticker.js";
+import {initAuth, } from "./auth.js";
 
 const board = document.getElementById("board");
 
@@ -34,6 +35,8 @@ async function init() {
         let sticker = await createSticker(board);
         board.appendChild(sticker);
     });
+    
+    initAuth();
 }
 
 window.addEventListener("DOMContentLoaded", init);
