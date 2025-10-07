@@ -8,20 +8,20 @@ function authHeaders() {
     return headers;
 }
 
-export async function signup(login, password) {
+export async function signup(user) {
     const res = await fetch(`${API_BASE}/user/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ login, password })
+        body: JSON.stringify(user)
     });
     return res.json();
 }
 
-export async function login(login, password) {
+export async function login(user) {
     const res = await fetch(`${API_BASE}/user/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ login, password })
+        body: JSON.stringify(user)
     });
     const data = await res.json();
     if (res.ok) {

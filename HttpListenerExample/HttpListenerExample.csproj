@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net6.0</TargetFramework>
+        <TargetFramework>net8.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <OutputType>Exe</OutputType>
@@ -10,7 +10,7 @@
     <ItemGroup>
       <PackageReference Include="CodeJam" Version="4.1.0" />
       <PackageReference Include="FluentValidation" Version="11.7.1" />
-      <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.0-rc.1.23419.4" />
+      <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.9" />
       <PackageReference Include="MongoDB.Driver" Version="2.21.0" />
       <PackageReference Include="Npgsql" Version="9.0.1" />
     </ItemGroup>

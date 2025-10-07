@@ -4,7 +4,7 @@ using System.Text;
 using Microsoft.IdentityModel.Tokens;
 using SimpleHttpListenerServer.Entities;
 
-namespace SimpleHttpListenerServer;
+namespace SimpleHttpListenerServer.Helpers;
 
 public static class JwtWorker
 {
@@ -48,7 +48,7 @@ public static class JwtWorker
 
         try
         {
-            var claimsPrincipal = tokenHandler.ValidateToken(token, validationParameters, out SecurityToken validatedToken);
+            var claimsPrincipal = tokenHandler.ValidateToken(token, validationParameters, out SecurityToken _);
             var userId = claimsPrincipal.Claims.First(x => x.Type == JwtRegisteredClaimNames.Sub).Value;
             var roleClaim = claimsPrincipal.Claims.First(x => x.Type == "Role").Value;
             return (true, new User

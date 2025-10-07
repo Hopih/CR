@@ -75,20 +75,23 @@ main {
 
 .toolbar {
     position: fixed;
-    bottom: 10%;
-    right: 45%;
-    width: 10%;
-    max-width: 800px;
-    height: auto;
-    z-index: 1000;
+    bottom: 5vh;                /* привязка по высоте через vh */
+    left: 50%;                  /* центрируем по горизонтали */
+    transform: translateX(-50%);/* смещение влево на половину ширины */
+
+    width: min(70vw, 800px);    /* адаптивная ширина — не больше 600px и не более 90% экрана */
+    padding: 1vh 2vw;
     background-color: #f9f9f9;
-    padding: 1vh;
     border-radius: 15px;
     border: 2px solid black;
+    z-index: 1000;
 
-    display: flex; /* Включаем Flexbox */
-    justify-content: space-between; /* Равномерное распределение элементов */
-    align-items: baseline; /* Вертикальное центрирование элементов */
+    display: flex;
+    justify-content: space-evenly;
+    align-items: center;
+    gap: 1vw;                   /* небольшое расстояние между кнопками */
+
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
 .toolbar-button {
@@ -168,11 +171,22 @@ main {
     border-radius: 10px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     width: 300px;
-    position: relative;
+    position: fixed;
+    top: 50%;
+    left: 50%;
     justify-content: center;
     display: flex;
     align-items: center;
     flex-direction: column;
+    transform: translate(-50%, -50%);/* <– центрируем */
+    z-index: 2000;                   /* поверх всего */
+    gap: 12px;
+    animation: formFadeIn 0.3s ease; /* красивое появление */
+}
+
+@keyframes formFadeIn {
+    from { opacity: 0; transform: translate(-50%, -60%); }
+    to { opacity: 1; transform: translate(-50%, -50%); }
 }
 
 .form-container h2 {
@@ -196,8 +210,47 @@ main {
     border: none;
     border-radius: 5px;
     cursor: pointer;
+    transition: background-color 0.2s ease;
 }
 
 .form-container button:hover {
     background-color: #45a049;
+}
+
+.form-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    /* === визуальные эффекты === */
+    background-color: rgba(255, 255, 255, 0.2);  /* лёгкая белая вуаль */
+    backdrop-filter: blur(6px);                  /* размытие всего подложенного контента */
+    -webkit-backdrop-filter: blur(6px);          /* поддержка Safari */
+
+    /* анимации появления / исчезновения */
+    opacity: 0;
+    pointer-events: none;
+}
+
+.form-overlay.show {
+    animation: fadeIn 0.3s ease forwards;
+    pointer-events: all;
+}
+
+.form-overlay.hide {
+    animation: fadeOut 0.3s ease forwards;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
 }

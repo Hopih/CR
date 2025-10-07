@@ -1,8 +1,7 @@
 ﻿using FluentValidation;
-using SimpleHttpListenerServer.Entities;
 using SimpleHttpListenerServer.Models;
 
-namespace SimpleHttpListenerServer;
+namespace SimpleHttpListenerServer.Helpers;
 
 public class UserValidationRules:AbstractValidator<SignupRequest>
 {

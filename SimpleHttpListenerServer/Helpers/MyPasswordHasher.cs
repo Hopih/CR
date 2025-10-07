@@ -1,6 +1,6 @@
 ﻿using System.Security.Cryptography;
 
-namespace SimpleHttpListenerServer;
+namespace SimpleHttpListenerServer.Helpers;
 
 public static class MyPasswordHasher
 {

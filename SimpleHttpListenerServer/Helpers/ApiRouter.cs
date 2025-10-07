@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.RegularExpressions;
 using Npgsql;
 using SimpleHttpListenerServer.Database;
 using SimpleHttpListenerServer.Entities;
@@ -6,9 +7,29 @@ using SimpleHttpListenerServer.Models;
 
 namespace SimpleHttpListenerServer.Helpers;
 
-public sealed class ApiRouter(string connectionString)
+public record Route(string Method, string Pattern, Func<HttpListenerContext, Match, CancellationToken, Task> Handler);
+
+
+public sealed class ApiRouter
 {
+    private readonly List<Route> _routes = new();
     private QuotesApiClient quotesApiClient = new QuotesApiClient();
+    private readonly string connectionString;
+
+    public ApiRouter(string connectionString)
+    {
+        _routes.Add(new("POST", "^/api/user/signup$", Signup));
+        _routes.Add(new("POST", "^/api/user/login$", Login));
+        _routes.Add(new("GET", "^/api/boards$", GetUserBoards));
+        _routes.Add(new("POST", "^/api/boards$", CreateUserBoard));
+        _routes.Add(new("POST", "^/api/guest/board$", CreateGuestBoard));
+        _routes.Add(new("GET", "^/api/quotes/random$", GetRandomQuotes));
+        _routes.Add(new("GET", "^/api/boards/([0-9a-fA-F-]+)/elements$", GetBoardElements));
+        _routes.Add(new("POST", "^/api/boards/([0-9a-fA-F-]+)/elements/bulk$", UpsertBoardElements));
+        
+        this.connectionString = connectionString;
+    }
+    
     public async Task HandleAsync(HttpListenerContext ctx, CancellationToken ct)
     {
         var path = ctx.Request.Url?.AbsolutePath ?? "/";
@@ -16,47 +37,15 @@ public sealed class ApiRouter(string connectionString)
 
         try
         {
-            switch (path)
+            foreach (var route in _routes)
             {
-                // AUTH
-                case "/api/user/signup" when method == "POST":
-                    await Signup(ctx, ct); 
+                if (route.Method != method) continue;
+                var match = Regex.Match(path, route.Pattern, RegexOptions.IgnoreCase);
+                if (match.Success)
+                {
+                    await route.Handler(ctx, match, ct);
                     return;
-                case "/api/user/login" when method == "POST":
-                    await Login(ctx, ct);  
-                    return;
-                // BOARDS (authorized)
-                case "/api/boards" when method == "GET":
-                    await GetUserBoards(ctx, ct); 
-                    return;
-                case "/api/boards" when method == "POST":
-                    await CreateUserBoard(ctx, ct); 
-                    return;
-                // GUEST BOARD
-                case "/api/guest/board" when method == "POST":
-                    await CreateGuestBoard(ctx, ct); 
-                    return;
-                
-                case "/api/quotes/random" when method == "GET":
-                    await GetRandomQuotes(ctx, ct);
-                    return;
-            }
-
-            // ELEMENTS (GET/POST) with boardId
-            var elementsGet = System.Text.RegularExpressions.Regex.Match(path, "^/api/boards/([0-9a-fA-F-]+)/elements$");
-            if (elementsGet.Success && method == "GET")
-            {
-                var boardId = Guid.Parse(elementsGet.Groups[1].Value);
-                await GetBoardElements(ctx, boardId, ct);
-                return;
-            }
-
-            var elementsBulk = System.Text.RegularExpressions.Regex.Match(path, "^/api/boards/([0-9a-fA-F-]+)/elements/bulk$");
-            if (elementsBulk.Success && method == "POST")
-            {
-                var boardId = Guid.Parse(elementsBulk.Groups[1].Value);
-                await UpsertBoardElements(ctx, boardId, ct);
-                return;
+                }
             }
 
             await ctx.Response.WriteErrorAsync(404, "not_found", ct);
@@ -66,8 +55,9 @@ public sealed class ApiRouter(string connectionString)
             await ctx.Response.WriteErrorAsync(500, ex.Message, ct);
         }
     }
+    
 
-    private async Task Signup(HttpListenerContext ctx, CancellationToken ct)
+    private async Task Signup(HttpListenerContext ctx, Match _,  CancellationToken ct)
     {
         var dto = await ctx.Request.ReadJsonAsync<SignupRequest>(ct);
         if (dto is null )
@@ -104,13 +94,13 @@ public sealed class ApiRouter(string connectionString)
         }
     }
 
-    private async Task GetRandomQuotes(HttpListenerContext ctx, CancellationToken ct)
+    private async Task GetRandomQuotes(HttpListenerContext ctx, Match _, CancellationToken ct)
     {
         var quote = await quotesApiClient.GetRandomQuoteAsync(ct);
         await ctx.Response.WriteJsonAsync(quote, 200, ct);
     }
 
-    private async Task Login(HttpListenerContext ctx, CancellationToken ct)
+    private async Task Login(HttpListenerContext ctx, Match _, CancellationToken ct)
     {
         var dto = await ctx.Request.ReadJsonAsync<LoginRequest>(ct);
         if (dto is null) { await ctx.Response.WriteErrorAsync(400, "bad_request", ct); return; }
@@ -127,7 +117,7 @@ public sealed class ApiRouter(string connectionString)
         await ctx.Response.WriteJsonAsync(new LoginResponse { Token = token, UserId = row.Id, Role = row.Role }, 200, ct);
     }
 
-    private async Task GetUserBoards(HttpListenerContext ctx, CancellationToken ct)
+    private async Task GetUserBoards(HttpListenerContext ctx, Match _, CancellationToken ct)
     {
         var user = ctx.Request.GetUser();
         if (user is null) { await ctx.Response.WriteErrorAsync(401, "unauthorized", ct); return; }
@@ -137,7 +127,7 @@ public sealed class ApiRouter(string connectionString)
         await ctx.Response.WriteJsonAsync(boards.Select(b => new { b.Id, b.Title }).ToList(), 200, ct);
     }
 
-    private async Task CreateUserBoard(HttpListenerContext ctx, CancellationToken ct)
+    private async Task CreateUserBoard(HttpListenerContext ctx, Match _, CancellationToken ct)
     {
         var user = ctx.Request.GetUser();
         if (user is null) { await ctx.Response.WriteErrorAsync( 401, "unauthorized", ct); return; }
@@ -148,7 +138,7 @@ public sealed class ApiRouter(string connectionString)
         await ctx.Response.WriteJsonAsync( new { id }, 201, ct);
     }
 
-    private async Task CreateGuestBoard(HttpListenerContext ctx, CancellationToken ct)
+    private async Task CreateGuestBoard(HttpListenerContext ctx, Match _, CancellationToken ct)
     {
         var dto = await ctx.Request.ReadJsonAsync<CreateBoardRequest>(ct) ?? new CreateBoardRequest { Title = "Guest board" };
         var repo = new BoardsRepository(connectionString);
@@ -175,8 +165,11 @@ public sealed class ApiRouter(string connectionString)
                && gk == tk && exp > DateTime.UtcNow;
     }
 
-    private async Task GetBoardElements(HttpListenerContext ctx, Guid boardId, CancellationToken ct)
+    private async Task GetBoardElements(HttpListenerContext ctx, Match match, CancellationToken ct)
     {
+        
+        var boardId = Guid.Parse(match.Groups[1].Value);
+        
         var user = ctx.Request.GetUser();
         var guestKey = ctx.Request.GetCookie("guest_board_key") ?? ctx.Request.Headers["X-Guest-Key"];
 
@@ -200,8 +193,9 @@ public sealed class ApiRouter(string connectionString)
         await ctx.Response.WriteJsonAsync(list, 200, ct);
     }
 
-    private async Task UpsertBoardElements(HttpListenerContext ctx, Guid boardId, CancellationToken ct)
+    private async Task UpsertBoardElements(HttpListenerContext ctx, Match match, CancellationToken ct)
     {
+        var boardId = Guid.Parse(match.Groups[1].Value);
         var user = ctx.Request.GetUser();
         var guestKey = ctx.Request.GetCookie("guest_board_key") ?? ctx.Request.Headers["X-Guest-Key"];
 

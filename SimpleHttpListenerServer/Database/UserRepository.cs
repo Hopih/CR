@@ -1,6 +1,7 @@
 ﻿using System.Data;
 using Npgsql;
 using SimpleHttpListenerServer.Entities;
+using SimpleHttpListenerServer.Helpers;
 
 namespace SimpleHttpListenerServer.Database;
 
