@@ -76,3 +76,29 @@ export async function saveElements(boardId, elements) {
     });
     return await res.json();
 }
+
+
+export function getCurrentElements() {
+    const items = document.querySelectorAll('.board-item');
+    return Array.from(items).map(item => {
+        const base = {
+            id: item.dataset.id,
+            x: parseInt(item.style.left) || 0,
+            y: parseInt(item.style.top) || 0,
+            width: parseInt(item.style.width) || 0,
+            height: parseInt(item.style.height) || 0,
+            type: item.classList.contains('sticker') ? 'sticker'
+                : item.classList.contains('image') ? 'image'
+                    : 'text'
+        };
+
+        if (base.type === 'sticker') {
+            base.text = item.textContent.trim();
+            base.color = item.dataset.color || null;
+        } else if (base.type === 'image') {
+            base.src = item.dataset.src || null;
+        }
+
+        return base;
+    });
+}

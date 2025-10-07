@@ -2,7 +2,7 @@ import { saveElements } from "./api.js";
 
 export async function createSticker(board) {
     const sticker = document.createElement('div');
-    sticker.className = 'sticker';
+    sticker.classList.add('board-item', 'sticker');
     sticker.dataset.id = crypto.randomUUID(); // уникальный id
 
     try {

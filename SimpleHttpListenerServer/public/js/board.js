@@ -1,10 +1,17 @@
 import { createSticker } from './sticker.js';
+import {} from './api.js';
 
 export function initBoard() {
     const board = document.getElementById('board');
     const addStickerBtn = document.getElementById('addSticker');
+    const saveButton = document.getElementById('saveButton');
 
     addStickerBtn.addEventListener('click', async () => {
+        const sticker = await createSticker(board);
+        board.appendChild(sticker);
+    });
+
+    saveButton.addEventListener('click', async () => {
         const sticker = await createSticker(board);
         board.appendChild(sticker);
     });
