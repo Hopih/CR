@@ -7,14 +7,13 @@ namespace SimpleHttpListenerServer.Database;
 
 public sealed class UsersRepository
 {
-    private readonly string _cs;
-    public UsersRepository(string cs) => _cs = cs;
+    NpgsqlDataSource _dataSource;
+    public UsersRepository(NpgsqlDataSource dataSource) => _dataSource = dataSource;
 
     public async Task<int?> CreateUserAsync(string login, string password, CancellationToken ct)
     {
         var hashPass = MyPasswordHasher.Hash(password).Split(";");
-        await using var conn = new NpgsqlConnection(_cs);
-        await conn.OpenAsync(ct);
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
 
         var sql = @"insert into app_user(login, pwd_hash, pwd_salt, role)
                     values(@login, @hash, @salt, 'user')
@@ -39,8 +38,7 @@ public sealed class UsersRepository
 
     public async Task<UserRow?> GetByLoginAsync(string login, CancellationToken ct)
     {
-        await using var conn = new NpgsqlConnection(_cs);
-        await conn.OpenAsync(ct);
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
 
         var sql = @"select id, login, pwd_hash, pwd_salt, role from app_user where login=@login;";
         await using var cmd = new NpgsqlCommand(sql, conn);

@@ -5,17 +5,19 @@ namespace SimpleHttpListenerServer.Database;
 
 public sealed class BoardsRepository
 {
-    private readonly string _cs;
-    public BoardsRepository(string connectionString) => _cs = connectionString;
+
+    NpgsqlDataSource _dataSource;
+    public BoardsRepository(NpgsqlDataSource dataSource) => _dataSource = dataSource;
 
     public async Task<(Guid boardId, Guid tempKey, DateTime expires)> CreateGuestBoardAsync(string title, TimeSpan ttl, CancellationToken ct)
     {
-        await using var conn = new NpgsqlConnection(_cs);
-        await conn.OpenAsync(ct);
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
 
-        var sql = @"insert into board (title, is_temporary, temp_key, temp_expires_at)
-                    values (@title, true, gen_random_uuid(), now() + @ttl)
-                    returning id, temp_key, temp_expires_at;";
+        var sql = """
+                  insert into board (title, is_temporary, temp_key, temp_expires_at)
+                                      values (@title, true, gen_random_uuid(), now() + @ttl)
+                                      returning id, temp_key, temp_expires_at;
+                  """;
         await using var cmd = new NpgsqlCommand(sql, conn);
         cmd.Parameters.AddWithValue("title", title);
         cmd.Parameters.AddWithValue("ttl", NpgsqlTypes.NpgsqlDbType.Interval, ttl);
@@ -30,12 +32,13 @@ public sealed class BoardsRepository
 
     public async Task<Guid> CreateUserBoardAsync(long ownerUserId, string title, CancellationToken ct)
     {
-        await using var conn = new NpgsqlConnection(_cs);
-        await conn.OpenAsync(ct);
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
 
-        var sql = @"insert into board (id, owner_user_id, title, is_temporary)
-                    values (gen_random_uuid(), @uid, @title, false)
-                    returning id;";
+        var sql = """
+                  insert into board (id, owner_user_id, title, is_temporary)
+                                      values (gen_random_uuid(), @uid, @title, false)
+                                      returning id;
+                  """;
         await using var cmd = new NpgsqlCommand(sql, conn);
         cmd.Parameters.AddWithValue("uid", ownerUserId);
         cmd.Parameters.AddWithValue("title", title);
@@ -46,8 +49,7 @@ public sealed class BoardsRepository
 
     public async Task<(Guid Id, int? OwnerUserId, bool IsTemporary, Guid? TempKey, DateTime? TempExpiresAt)?> GetBoardMetaAsync(Guid boardId, CancellationToken ct)
     {
-        await using var conn = new NpgsqlConnection(_cs);
-        await conn.OpenAsync(ct);
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
 
         var sql = @"select id, owner_user_id, is_temporary, temp_key, temp_expires_at from board where id=@id;";
         await using var cmd = new NpgsqlCommand(sql, conn);
@@ -70,11 +72,12 @@ public sealed class BoardsRepository
     public async Task<List<Board>> GetUserBoardsAsync(long userId, CancellationToken ct)
     {
         var list = new List<Board>();
-        await using var conn = new NpgsqlConnection(_cs);
-        await conn.OpenAsync(ct);
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
 
-        var sql = @"select id, owner_user_id, title, is_temporary, temp_key, temp_expires_at, created_at
-                    from board where owner_user_id=@uid order by created_at desc;";
+        var sql = """
+                  select id, owner_user_id, title, is_temporary, temp_key, temp_expires_at, created_at
+                                      from board where owner_user_id=@uid order by created_at desc;
+                  """;
         await using var cmd = new NpgsqlCommand(sql, conn);
         cmd.Parameters.AddWithValue("uid", userId);
 
@@ -91,5 +94,28 @@ public sealed class BoardsRepository
             });
         }
         return list;
+    }
+    
+    
+    public async Task<int> DeleteExpiredGuestBoardsAsync(CancellationToken ct)
+    {
+        const string sql = """
+
+                                   WITH deleted_boards AS (
+                                       DELETE FROM boards
+                                       WHERE is_temporary = TRUE AND temp_expires_at < NOW()
+                                       RETURNING id
+                                   )
+                                   DELETE FROM elements
+                                   WHERE board_id IN (SELECT id FROM deleted_boards);
+                               
+                           """;
+
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
+
+        await using var cmd = new NpgsqlCommand(sql, conn);
+        var affected = await cmd.ExecuteNonQueryAsync(ct);
+
+        return affected;
     }
 }

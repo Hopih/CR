@@ -2,6 +2,7 @@ using System.Net;
 using SimpleHttpListenerServer.Entities;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace SimpleHttpListenerServer.Helpers;
 
@@ -10,7 +11,8 @@ public static class ApiHelpers
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        WriteIndented = false
+        WriteIndented = false,
+        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
     };
 
     public static async Task<T?> ReadJsonAsync<T>(this HttpListenerRequest req, CancellationToken ct)

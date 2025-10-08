@@ -55,3 +55,8 @@ export function renderAuthButtons() {
         container.append(signinBtn, signupBtn);
     }
 }
+
+export function clearGuestData() {
+    localStorage.removeItem("boardId");
+    localStorage.removeItem("guestKey");
+}

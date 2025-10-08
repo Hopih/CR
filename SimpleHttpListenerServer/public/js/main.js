@@ -1,40 +1,39 @@
-import { login, signup, getBoards, createBoard, createGuestBoard, loadElements } from "./api.js";
-import { createSticker, saveBoard } from "./sticker.js";
+import { createGuestBoard, loadElements, validateGuestBoard } from "./api.js";
+import { renderSticker } from "./sticker.js";
 import {renderAuthButtons } from "./auth.js";
+import {initToolBar } from "./toolbar.js";
 
 const board = document.getElementById("board");
 
 async function init() {
+
     let boardId = localStorage.getItem("boardId");
 
-    // если не авторизован и нет доски → создаём гостевую
-    if (!localStorage.getItem("token") && !boardId) {
-        const guest = await createGuestBoard();
-        boardId = guest.boardId;
+    // Если ничего нет — создаём новую
+    if (!boardId) {
+        console.log("🔹 Нет доски, создаём новую...");
+        const { boardId: newId, tempKey } = await createGuestBoard();
+        localStorage.setItem("boardId", newId);
+        localStorage.setItem("guestKey", tempKey);
+        boardId = newId;
     }
-
-    // загрузка элементов
-    const elements = await loadElements(boardId);
-    for (const e of elements) {
-        if (e.type === "sticker") {
-            let sticker = await createSticker(board);
-            board.appendChild(sticker);
+    else {
+        // Проверяем, не просрочен ли guestKey
+        const isValid = await validateGuestBoard();
+        if (!isValid) {
+            console.log("🔄 Старый ключ недействителен, создаём новую доску...");
+            const { boardId: newId, tempKey } = await createGuestBoard();
+            localStorage.setItem("boardId", newId);
+            localStorage.setItem("guestKey", tempKey);
+            boardId = newId;
         }
     }
 
-    const saveBtn = document.getElementById("saveBoard");
-    if (saveBtn) {
-        saveBtn.addEventListener("click", async () => {
-            await saveBoard(boardId);
-            alert("Сохранено!");
-        });
-    }
+    // Подгружаем элементы доски
+    const elements = await loadElements(boardId);
+    elements.forEach(renderSticker);
 
-    // кнопка "добавить стикер"
-    document.getElementById("addSticker").addEventListener("click", async () => {
-        let sticker = await createSticker(board);
-        board.appendChild(sticker);
-    });
+    initToolBar(board);
 
     renderAuthButtons();
 }

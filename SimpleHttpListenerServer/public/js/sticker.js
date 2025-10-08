@@ -293,3 +293,17 @@ function isOverflow(el, tol = 0) {
     return (el.scrollHeight - el.clientHeight > tol) ||
         (el.scrollWidth  - el.clientWidth  > tol);
 }
+
+export function renderSticker(data) {
+    const board = document.querySelector('.board');
+    const div = document.createElement('div');
+    div.className = 'sticker board-item';
+    div.dataset.id = data.id;
+    div.style.left = data.x + 'px';
+    div.style.top = data.y + 'px';
+    div.style.width = data.width + 'px';
+    div.style.height = data.height + 'px';
+    div.textContent = data.text;
+    div.classList.add('board-item', 'sticker');
+    board.appendChild(div);
+}

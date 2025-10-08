@@ -14,9 +14,9 @@ public sealed class ApiRouter
 {
     private readonly List<Route> _routes = new();
     private QuotesApiClient quotesApiClient = new QuotesApiClient();
-    private readonly string connectionString;
+    private NpgsqlDataSource dataSource;
 
-    public ApiRouter(string connectionString)
+    public ApiRouter(NpgsqlDataSource dataSource)
     {
         _routes.Add(new("POST", "^/api/user/signup$", Signup));
         _routes.Add(new("POST", "^/api/user/login$", Login));
@@ -27,7 +27,7 @@ public sealed class ApiRouter
         _routes.Add(new("GET", "^/api/boards/([0-9a-fA-F-]+)/elements$", GetBoardElements));
         _routes.Add(new("POST", "^/api/boards/([0-9a-fA-F-]+)/elements/bulk$", UpsertBoardElements));
         
-        this.connectionString = connectionString;
+        this.dataSource = dataSource;
     }
     
     public async Task HandleAsync(HttpListenerContext ctx, CancellationToken ct)
@@ -77,7 +77,7 @@ public sealed class ApiRouter
             return;
         }
 
-        var repo = new UsersRepository(connectionString);
+        var repo = new UsersRepository(dataSource);
         try
         {
             var userId = await repo.CreateUserAsync(dto.Login, dto.Password, ct);
@@ -105,7 +105,7 @@ public sealed class ApiRouter
         var dto = await ctx.Request.ReadJsonAsync<LoginRequest>(ct);
         if (dto is null) { await ctx.Response.WriteErrorAsync(400, "bad_request", ct); return; }
 
-        var repo = new UsersRepository(connectionString);
+        var repo = new UsersRepository(dataSource);
         var row = await repo.GetByLoginAsync(dto.Login, ct);
         if (row is null || !MyPasswordHasher.Validate($"{row.Hash};{row.Salt}", dto.Password))
         {
@@ -122,7 +122,7 @@ public sealed class ApiRouter
         var user = ctx.Request.GetUser();
         if (user is null) { await ctx.Response.WriteErrorAsync(401, "unauthorized", ct); return; }
 
-        var repo = new BoardsRepository(connectionString);
+        var repo = new BoardsRepository(dataSource);
         var boards = await repo.GetUserBoardsAsync(user.Id, ct);
         await ctx.Response.WriteJsonAsync(boards.Select(b => new { b.Id, b.Title }).ToList(), 200, ct);
     }
@@ -133,7 +133,7 @@ public sealed class ApiRouter
         if (user is null) { await ctx.Response.WriteErrorAsync( 401, "unauthorized", ct); return; }
 
         var dto = await ctx.Request.ReadJsonAsync<CreateBoardRequest>(ct) ?? new CreateBoardRequest();
-        var repo = new BoardsRepository(connectionString);
+        var repo = new BoardsRepository(dataSource);
         var id = await repo.CreateUserBoardAsync(user.Id, dto.Title, ct);
         await ctx.Response.WriteJsonAsync( new { id }, 201, ct);
     }
@@ -141,7 +141,7 @@ public sealed class ApiRouter
     private async Task CreateGuestBoard(HttpListenerContext ctx, Match _, CancellationToken ct)
     {
         var dto = await ctx.Request.ReadJsonAsync<CreateBoardRequest>(ct) ?? new CreateBoardRequest { Title = "Guest board" };
-        var repo = new BoardsRepository(connectionString);
+        var repo = new BoardsRepository(dataSource);
         var (boardId, tempKey, expires) = await repo.CreateGuestBoardAsync(dto.Title, TimeSpan.FromDays(3), ct);
         
         ctx.Response.AddHeader("Set-Cookie", $"guest_board_key={tempKey}; Path=/; Max-Age={3*24*3600}; HttpOnly");
@@ -150,7 +150,7 @@ public sealed class ApiRouter
 
     private async Task<bool> CanAccessBoard(Guid boardId, User? user, string? guestKey, CancellationToken ct)
     {
-        var boards = new BoardsRepository(connectionString);
+        var boards = new BoardsRepository(dataSource);
         var meta = await boards.GetBoardMetaAsync(boardId, ct);
         if (meta is null) return false;
 
@@ -159,9 +159,19 @@ public sealed class ApiRouter
 
         // гостевой доступ
         if (meta.Value is not { IsTemporary: true, TempKey: { } tk, TempExpiresAt: { } exp }) return false;
+
+        if (!Guid.TryParse(guestKey, out var gk))
+        {
+            return false;
+        }
         
+        if (gk == tk && exp < DateTime.UtcNow)
+        {
+            await boards.DeleteExpiredGuestBoardsAsync(ct);
+            return false;
+        }
+
         return !string.IsNullOrEmpty(guestKey) 
-               && Guid.TryParse(guestKey, out var gk) 
                && gk == tk && exp > DateTime.UtcNow;
     }
 
@@ -179,7 +189,7 @@ public sealed class ApiRouter
             return;
         }
 
-        var repo = new ElementsRepository(connectionString);
+        var repo = new ElementsRepository(dataSource);
         var rows = await repo.GetElementsWithStickersAsync(boardId, ct);
 
         var list = rows.Select(r => new ElementDto {
@@ -218,7 +228,7 @@ public sealed class ApiRouter
             Text = e.Text, Color = e.Color, FontSize = e.FontSize
         }).ToList();
 
-        var repo = new ElementsRepository(connectionString);
+        var repo = new ElementsRepository(dataSource);
         await repo.UpsertElementsAsync(boardId, user?.Id, items, ct);
 
         await ctx.Response.WriteJsonAsync(new { updated = items.Count }, 200, ct);

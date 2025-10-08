@@ -2,9 +2,19 @@
 const API_BASE = "/api";
 
 function authHeaders() {
-    const token = localStorage.getItem("token");
     const headers = { "Content-Type": "application/json" };
-    if (token) headers["Authorization"] = `Bearer ${token}`;
+    const token = localStorage.getItem("token");
+    
+    if (token){
+        headers["Authorization"] = `Bearer ${token}`;  
+    } 
+    
+    const guestKey = localStorage.getItem("guestKey");
+    
+    if (guestKey){
+        headers["X-Guest-Key"] = guestKey;
+    } 
+    
     return headers;
 }
 
@@ -55,7 +65,30 @@ export async function createGuestBoard(title = "Guest Board") {
     });
     const data = await res.json();
     localStorage.setItem("boardId", data.boardId);
+    localStorage.setItem("guestKey", data.tempKey);
     return data;
+}
+
+export async function validateGuestBoard() {
+    const boardId = localStorage.getItem("boardId");
+    if (!boardId) return false;
+
+    const res = await fetch(`/api/boards/${boardId}/elements`, {
+        headers: authHeaders(),
+    });
+
+    // доступен — возвращаем true
+    if (res.ok) return true;
+
+    // 403 → ключ просрочен
+    if (res.status === 403) {
+        console.warn("Guest board expired or invalid key. Clearing localStorage...");
+        localStorage.removeItem("boardId");
+        localStorage.removeItem("guestKey");
+        return false;
+    }
+
+    return false;
 }
 
 export async function loadElements(boardId) {
@@ -80,25 +113,17 @@ export async function saveElements(boardId, elements) {
 
 export function getCurrentElements() {
     const items = document.querySelectorAll('.board-item');
-    return Array.from(items).map(item => {
-        const base = {
-            id: item.dataset.id,
-            x: parseInt(item.style.left) || 0,
-            y: parseInt(item.style.top) || 0,
-            width: parseInt(item.style.width) || 0,
-            height: parseInt(item.style.height) || 0,
-            type: item.classList.contains('sticker') ? 'sticker'
-                : item.classList.contains('image') ? 'image'
-                    : 'text'
-        };
-
-        if (base.type === 'sticker') {
-            base.text = item.textContent.trim();
-            base.color = item.dataset.color || null;
-        } else if (base.type === 'image') {
-            base.src = item.dataset.src || null;
-        }
-
-        return base;
-    });
+    return Array.from(items).map(item => ({
+        id: item.dataset.id,
+        type: item.classList.contains('sticker') ? 'sticker' : 'unknown',
+        x: parseInt(item.style.left) || 0,
+        y: parseInt(item.style.top) || 0,
+        width: parseInt(item.style.width) || 0,
+        height: parseInt(item.style.height) || 0,
+        text: item.textContent.trim(),
+        color: item.dataset.color || null,
+        fontSize: parseInt(item.style.fontSize) || 14,
+        rotation: parseFloat(item.style.rotate) || 0,
+        zIndex: parseInt(item.style.zIndex) || 0
+    }));
 }

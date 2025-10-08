@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Net;
 using MimeMapping;
+using Npgsql;
 using SimpleHttpListenerServer.Helpers;
 
 namespace SimpleHttpListenerServer.Core;
@@ -12,10 +13,10 @@ public class HttpServer
     private readonly SemaphoreSlim _semaphore;
     private static readonly ConcurrentDictionary<string, string> MimeCache = new();
 
-    public HttpServer(string prefix, string connectionString, int maxConcurrentRequests = 50)
+    public HttpServer(string prefix, NpgsqlDataSource dataSource, int maxConcurrentRequests = 50)
     {
         _listener.Prefixes.Add(prefix);
-        _router = new ApiRouter(connectionString);
+        _router = new ApiRouter(dataSource);
         _semaphore = new SemaphoreSlim(maxConcurrentRequests);
     }
 

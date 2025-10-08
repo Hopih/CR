@@ -1,5 +1,5 @@
-import {createSticker} from "./sticker";
-import {saveElements} from "./api.js";
+import {createSticker} from "./sticker.js";
+import {saveElements, getCurrentElements} from "./api.js";
 
 
 export function initToolBar(board) {
@@ -12,7 +12,18 @@ export function initToolBar(board) {
     });
 
     saveButton.addEventListener('click', async () => {
-        const result = await saveElements(board.id, );
-        board.appendChild(sticker);
+        const boardId = localStorage.getItem("boardId");
+        
+        if (!boardId) {
+            console.log("Нет активной доски для сохранения.");
+        }
+
+        const elements = getCurrentElements();
+        if (!elements.length){
+            console.log("Нет элементов для сохранения.");
+        }
+
+        await saveElements(boardId, elements);
+        console.log("Доска сохранена.");
     });
 }

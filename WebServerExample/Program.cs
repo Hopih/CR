@@ -9,6 +9,8 @@ using WebServerExample;
 var httpListener = new HttpListener();
 httpListener.Prefixes.Add("http://localhost:5000/");
 
+
+
 var methods = typeof(WebHelper).GetMethods()
     .Where(mi => mi.GetCustomAttributes(true).Any(attr => attr is Mapping)).ToArray();
 var defaultMethod = methods.First(x =>

@@ -5,14 +5,13 @@ namespace SimpleHttpListenerServer.Database;
 
 public sealed class ElementsRepository
 {
-    private readonly string _cs;
-    public ElementsRepository(string cs) => _cs = cs;
+    NpgsqlDataSource _dataSource;
+    public ElementsRepository(NpgsqlDataSource dataSource) => _dataSource = dataSource;
 
     public async Task<List<BoardElement>> GetElementsWithStickersAsync(Guid boardId, CancellationToken ct)
     {
         var result = new List<BoardElement>();
-        await using var conn = new NpgsqlConnection(_cs);
-        await conn.OpenAsync(ct);
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
 
         var sql = @"
 select
@@ -33,7 +32,7 @@ order by e.z_index, e.updated_at;";
                 Id = rd.GetGuid(0),
                 BoardId = rd.GetGuid(1),
                 UserId = rd.IsDBNull(2) ? null : rd.GetInt32(2),
-                Type = Enum.Parse<ElementType>(rd.GetString(3)),
+                Type = Enum.Parse<ElementType>(rd.GetString(3), true),
                 X = rd.GetInt32(4),
                 Y = rd.GetInt32(5),
                 Width = rd.GetInt32(6),
@@ -51,8 +50,7 @@ order by e.z_index, e.updated_at;";
 
     public async Task UpsertElementsAsync(Guid boardId, int? userId, IEnumerable<BoardElement> items, CancellationToken ct)
     {
-        await using var conn = new NpgsqlConnection(_cs);
-        await conn.OpenAsync(ct);
+        await using var conn = await _dataSource.OpenConnectionAsync(ct);
         await using var tx = await conn.BeginTransactionAsync(ct);
 
         const string upsertElement = @"
@@ -77,7 +75,7 @@ set text = excluded.text, color = excluded.color, font_size = excluded.font_size
                 cmd.Parameters.AddWithValue("id", it.Id);
                 cmd.Parameters.AddWithValue("board_id", boardId);
                 cmd.Parameters.AddWithValue("user_id", (object?)userId ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("type", it.Type.ToString());
+                cmd.Parameters.AddWithValue("type", it.Type);
                 cmd.Parameters.AddWithValue("x", it.X);
                 cmd.Parameters.AddWithValue("y", it.Y);
                 cmd.Parameters.AddWithValue("width", it.Width);
