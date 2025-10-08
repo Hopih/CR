@@ -294,6 +294,14 @@ main {
     background-color: #1976D2;
 }
 
+.auth-button.boards {
+    background-color: #ff9800;
+}
+
+.auth-button.logout {
+    background-color: #d32f2f;
+}
+
 .auth-button:hover {
     transform: translateY(-1px);
     box-shadow: 0 3px 6px rgba(0,0,0,0.2);
