@@ -1,0 +1,43 @@
+.auth-buttons {
+    grid-column: 3;
+    justify-self: end;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.auth-button {
+    padding: 8px 16px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 14px;
+    color: #fff;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+.auth-button.signin { background-color: #388E3C; }
+.auth-button.signup { background-color: #1976D2; }
+.auth-button.boards { background-color: #ff9800; }
+.auth-button.logout { background-color: #d32f2f; }
+
+.auth-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+}
+
+.auth-button:active {
+    transform: translateY(0);
+    box-shadow: none;
+}
+
+@media (max-width: 600px) {
+
+    .auth-buttons {
+        justify-content: center;
+        width: 100%;
+        flex-wrap: wrap;
+    }
+}
+

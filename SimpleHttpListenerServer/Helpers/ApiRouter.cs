@@ -216,21 +216,38 @@ public sealed class ApiRouter
         }
 
         var dto = await ctx.Request.ReadJsonAsync<BulkElementsRequest>(ct);
-        if (dto is null || dto.Elements.Count == 0) { await ctx.Response.WriteErrorAsync(400, "no_elements", ct); return; }
+        
+        if (dto is null || dto.Elements.Count == 0)
+        {
+            await ctx.Response.WriteErrorAsync(400, "no_elements", ct); 
+            return;
+        }
 
-        var items = dto.Elements.Select(e => new BoardElement {
+        var items = dto.Elements.Select(e => new BoardElement 
+        {
             Id = e.Id == Guid.Empty ? Guid.NewGuid() : e.Id,
             BoardId = boardId,
             UserId = user?.Id,
             Type = e.Type,
-            X = e.X, Y = e.Y, Width = e.Width, Height = e.Height,
-            ZIndex = e.ZIndex, Rotation = e.Rotation,
-            Text = e.Text, Color = e.Color, FontSize = e.FontSize
+            X = e.X, 
+            Y = e.Y, 
+            Width = e.Width,
+            Height = e.Height,
+            ZIndex = e.ZIndex, 
+            Rotation = e.Rotation,
+            Text = e.Text, 
+            Color = e.Color,
+            FontSize = e.FontSize
         }).ToList();
 
         var repo = new ElementsRepository(dataSource);
-        await repo.UpsertElementsAsync(boardId, user?.Id, items, ct);
+        await repo.SyncBoardElementsAsync(boardId, user?.Id, items, ct);
 
-        await ctx.Response.WriteJsonAsync(new { updated = items.Count }, 200, ct);
+        await ctx.Response.WriteJsonAsync(
+            new
+            {
+                updated = items.Count
+            }, 
+            200, ct);
     }
 }

@@ -15,7 +15,7 @@ public sealed class UsersRepository
         var hashPass = MyPasswordHasher.Hash(password).Split(";");
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
 
-        var sql = @"insert into app_user(login, pwd_hash, pwd_salt, role)
+        var sql = @"insert into users(login, pwd_hash, pwd_salt, role)
                     values(@login, @hash, @salt, 'user')
                     returning id;";
         await using var cmd = new NpgsqlCommand(sql, conn);
@@ -40,7 +40,7 @@ public sealed class UsersRepository
     {
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
 
-        var sql = @"select id, login, pwd_hash, pwd_salt, role from app_user where login=@login;";
+        var sql = @"select id, login, pwd_hash, pwd_salt, role from users where login=@login;";
         await using var cmd = new NpgsqlCommand(sql, conn);
         cmd.Parameters.AddWithValue("login", login);
 

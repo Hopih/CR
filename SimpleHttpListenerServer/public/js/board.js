@@ -1,5 +1,5 @@
 import { createSticker } from './sticker.js';
-import {} from './api.js';
+import {getBoards} from './api.js';
 
 export function initBoard() {
     const board = document.getElementById('board');
@@ -40,5 +40,22 @@ function adjustFontSizeHeaders(element, min, max){
             fontSize += 1;
             element.style.fontSize = fontSize + 'px';
         } else break;
+    }
+}
+
+export async function updateBoardTitle() {
+    const title = document.getElementById('board-title');
+    const boardId = localStorage.getItem('boardId');
+    if (!boardId) {
+        title.textContent = 'Guest Board';
+        return;
+    }
+
+    try {
+        const boards = await getBoards();
+        const board = boards.find(b => b.id === boardId);
+        title.textContent = board ? board.title : 'Guest Board';
+    } catch {
+        title.textContent = 'Guest Board';
     }
 }

@@ -28,6 +28,7 @@ export async function createSticker(board) {
     sticker.style.height = h + "px";
     sticker.style.top = Math.random() * (boardRect.height - h) + 'px';
     sticker.style.left = Math.random() * (boardRect.width - w) + 'px';
+    sticker.dataset.color = getComputedStyle(sticker).backgroundColor;
 
     makeDraggable(sticker);
     makeResizable(sticker);
@@ -141,6 +142,9 @@ function makeResizable(sticker) {
 
 // --- редактирование ---
 function makeEditable(sticker) {
+
+    // Снять выделение, если есть
+    sticker.classList.remove('selected');
     let editor = null;
     let savedText = sticker.innerText.trim();
     const placeholderText = "Стикер пуст";
@@ -305,5 +309,10 @@ export function renderSticker(data) {
     div.style.height = data.height + 'px';
     div.textContent = data.text;
     div.classList.add('board-item', 'sticker');
+
+    makeDraggable(div);
+    makeResizable(div);
+    makeEditable(div);
+    
     board.appendChild(div);
 }

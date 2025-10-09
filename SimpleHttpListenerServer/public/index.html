@@ -4,7 +4,14 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
-    <link rel="stylesheet" type="text/css" href="css/styles.css"/>
+    <link rel="stylesheet" type="text/css" href="css/base.css">
+    <link rel="stylesheet" type="text/css" href="css/layout.css">
+    <link rel="stylesheet" type="text/css" href="css/board.css">
+    <link rel="stylesheet" type="text/css" href="css/toolbar.css">
+    <link rel="stylesheet" type="text/css" href="css/auth.css">
+    <link rel="stylesheet" type="text/css" href="css/popup.css">
+    <link rel="stylesheet" type="text/css" href="css/forms.css">
+    <link rel="stylesheet" type="text/css" href="css/animations.css">
 </head>
 <body>
     <header>
@@ -13,6 +20,13 @@
         </div>
     </header>
     <main>
+        <div id="boards-overlay" class="boards-overlay hidden">
+            <div class="boards-container">
+                <h3>Мои доски</h3>
+                <div class="boards-grid" id="boards-grid"></div>
+                <button id="close-boards" class="auth-button logout">Закрыть</button>
+            </div>
+        </div>
         <div class="board" id="board">
             <!-- Здесь будут добавляться заметки -->
         </div>

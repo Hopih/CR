@@ -53,20 +53,24 @@ order by e.z_index, e.updated_at;";
         await using var conn = await _dataSource.OpenConnectionAsync(ct);
         await using var tx = await conn.BeginTransactionAsync(ct);
 
-        const string upsertElement = @"
-insert into board_element (id, board_id, user_id, type, x, y, width, height, z_index, rotation, updated_at)
-values (@id, @board_id, @user_id, @type, @x, @y, @width, @height, @z_index, @rotation, now())
-on conflict (id) do update
-set x = excluded.x, y = excluded.y,
-    width = excluded.width, height = excluded.height,
-    z_index = excluded.z_index, rotation = excluded.rotation,
-    updated_at = now();";
+        const string upsertElement = """
 
-        const string upsertSticker = @"
-insert into sticker (element_id, text, color, font_size)
-values (@id, @text, @color, @font_size)
-on conflict (element_id) do update
-set text = excluded.text, color = excluded.color, font_size = excluded.font_size;";
+                                     insert into board_element (id, board_id, user_id, type, x, y, width, height, z_index, rotation, updated_at)
+                                     values (@id, @board_id, @user_id, @type, @x, @y, @width, @height, @z_index, @rotation, now())
+                                     on conflict (id) do update
+                                     set x = excluded.x, y = excluded.y,
+                                         width = excluded.width, height = excluded.height,
+                                         z_index = excluded.z_index, rotation = excluded.rotation,
+                                         updated_at = now();
+                                     """;
+
+        const string upsertSticker = """
+
+                                     insert into sticker (element_id, text, color, font_size)
+                                     values (@id, @text, @color, @font_size)
+                                     on conflict (element_id) do update
+                                     set text = excluded.text, color = excluded.color, font_size = excluded.font_size;
+                                     """;
 
         foreach (var it in items)
         {
@@ -98,4 +102,93 @@ set text = excluded.text, color = excluded.color, font_size = excluded.font_size
 
         await tx.CommitAsync(ct);
     }
+    
+    
+  public async Task SyncBoardElementsAsync(Guid boardId, int? userId, IEnumerable<BoardElement> newItems, CancellationToken ct)
+{
+    await using var conn = await _dataSource.OpenConnectionAsync(ct);
+    await using var tx = await conn.BeginTransactionAsync(ct);
+
+    try
+    {
+        // --- 1️⃣ Сохраняем базовые элементы ---
+        const string upsertElementSql = """
+            INSERT INTO board_element (id, board_id, user_id, type, x, y, width, height, rotation, z_index)
+            VALUES (@id, @boardId, @userId, @type, @x, @y, @width, @height, @rotation, @zIndex)
+            ON CONFLICT (id) DO UPDATE
+            SET
+                x = EXCLUDED.x,
+                y = EXCLUDED.y,
+                width = EXCLUDED.width,
+                height = EXCLUDED.height,
+                rotation = EXCLUDED.rotation,
+                z_index = EXCLUDED.z_index;
+        """;
+
+        await using (var upsertCmd = new NpgsqlCommand(upsertElementSql, conn, tx))
+        {
+            foreach (var e in newItems)
+            {
+                upsertCmd.Parameters.Clear();
+                upsertCmd.Parameters.AddWithValue("id", e.Id);
+                upsertCmd.Parameters.AddWithValue("boardId", boardId);
+                upsertCmd.Parameters.AddWithValue("userId", (object?)userId ?? DBNull.Value);
+                upsertCmd.Parameters.AddWithValue("type", e.Type);
+                upsertCmd.Parameters.AddWithValue("x", e.X);
+                upsertCmd.Parameters.AddWithValue("y", e.Y);
+                upsertCmd.Parameters.AddWithValue("width", e.Width);
+                upsertCmd.Parameters.AddWithValue("height", e.Height);
+                upsertCmd.Parameters.AddWithValue("rotation", e.Rotation);
+                upsertCmd.Parameters.AddWithValue("zIndex", e.ZIndex);
+                await upsertCmd.ExecuteNonQueryAsync(ct);
+            }
+        }
+
+        // --- 2️⃣ Сохраняем доп. данные для стикеров ---
+        var stickers = newItems.Where(e => e.Type == ElementType.Sticker).ToList();
+        if (stickers.Count > 0)
+        {
+            const string upsertStickerSql = """
+                INSERT INTO sticker (element_id, text, color, font_size)
+                VALUES (@id, @text, @color, @fontSize)
+                ON CONFLICT (element_id) DO UPDATE
+                SET text = EXCLUDED.text,
+                    color = EXCLUDED.color,
+                    font_size = EXCLUDED.font_size;
+            """;
+
+            await using (var stickerCmd = new NpgsqlCommand(upsertStickerSql, conn, tx))
+            {
+                foreach (var s in stickers)
+                {
+                    stickerCmd.Parameters.Clear();
+                    stickerCmd.Parameters.AddWithValue("id", s.Id);
+                    stickerCmd.Parameters.AddWithValue("text", s.Text ?? (object)DBNull.Value);
+                    stickerCmd.Parameters.AddWithValue("color", s.Color ?? (object)DBNull.Value);
+                    stickerCmd.Parameters.AddWithValue("fontSize", s.FontSize ?? (object)DBNull.Value);
+                    await stickerCmd.ExecuteNonQueryAsync(ct);
+                }
+            }
+        }
+
+        // --- 3️⃣ Удаляем отсутствующие ---
+        var idsToKeep = newItems.Select(e => e.Id).ToArray();
+        await using (var deleteCmd = new NpgsqlCommand("""
+            DELETE FROM board_element 
+            WHERE board_id = @boardId AND id <> ALL(@idsToKeep)
+        """, conn, tx))
+        {
+            deleteCmd.Parameters.AddWithValue("boardId", boardId);
+            deleteCmd.Parameters.AddWithValue("idsToKeep", idsToKeep);
+            await deleteCmd.ExecuteNonQueryAsync(ct);
+        }
+
+        await tx.CommitAsync(ct);
+    }
+    catch
+    {
+        await tx.RollbackAsync(ct);
+        throw;
+    }
+}
 }

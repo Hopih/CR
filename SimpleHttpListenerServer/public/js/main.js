@@ -2,12 +2,15 @@ import { createGuestBoard, loadElements, validateGuestBoard } from "./api.js";
 import { renderSticker } from "./sticker.js";
 import {renderAuthButtons } from "./auth.js";
 import {initToolBar } from "./toolbar.js";
+import { initStickerSelection } from './selection.js';
+import { updateBoardTitle } from './header.js';
 
 const board = document.getElementById("board");
 
 async function init() {
 
     let boardId = localStorage.getItem("boardId");
+    let boardTitle = localStorage.getItem("boardTitle");
 
     // Если ничего нет — создаём новую
     if (!boardId) {
@@ -16,6 +19,8 @@ async function init() {
         localStorage.setItem("boardId", newId);
         localStorage.setItem("guestKey", tempKey);
         boardId = newId;
+        boardTitle = "Guest Board";
+        localStorage.setItem("boardTitle", boardTitle);
     }
     else {
         // Проверяем, не просрочен ли guestKey
@@ -29,12 +34,15 @@ async function init() {
         }
     }
 
+    updateBoardTitle(boardTitle);
+
     // Подгружаем элементы доски
     const elements = await loadElements(boardId);
     elements.forEach(renderSticker);
 
-    initToolBar(board);
 
+    initStickerSelection();
+    initToolBar(board);
     renderAuthButtons();
 }
 

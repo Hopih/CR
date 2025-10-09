@@ -1,7 +1,7 @@
 import { logout, isAuthenticated } from './session.js';
-//import { openBoards } from './board.js'; // функция перехода к списку досок (добавим позже)
 import { createForm } from './ui.js';
 import { login, signup } from './api.js';
+import { openBoards } from "./boards-popup.js";
 
 export function renderAuthButtons() {
     const container = document.getElementById('auth-buttons');
@@ -13,7 +13,7 @@ export function renderAuthButtons() {
         const boardsBtn = document.createElement('button');
         boardsBtn.className = 'auth-button boards';
         boardsBtn.textContent = 'Boards';
-        boardsBtn.addEventListener('click', openBoards);
+        boardsBtn.addEventListener('click', async () => await openBoards());
 
         const logoutBtn = document.createElement('button');
         logoutBtn.className = 'auth-button logout';
@@ -34,7 +34,7 @@ export function renderAuthButtons() {
                 { type: 'text', placeholder: 'Username', name: 'login' },
                 { type: 'password', placeholder: 'Password', name: 'password' }
             ], async (user) => {
-                await login(user.login, user.password);
+                await login(user);
                 renderAuthButtons();
             });
         });
@@ -47,7 +47,7 @@ export function renderAuthButtons() {
                 { type: 'text', placeholder: 'Username', name: 'login' },
                 { type: 'password', placeholder: 'Password', name: 'password' }
             ], async (user) => {
-                await signup(user.login, user.password);
+                await signup(user);
                 renderAuthButtons();
             });
         });

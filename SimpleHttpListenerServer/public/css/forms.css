@@ -1,0 +1,94 @@
+/* === overlay под формы (логин/регистрация, любые модалки) === */
+.form-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    /* визуальные эффекты */
+    background-color: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+
+    /* по умолчанию невидим */
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* показываем плавно */
+.form-overlay.show {
+    animation: fadeIn 0.3s ease forwards;
+    pointer-events: all;
+}
+
+/* прячем плавно */
+.form-overlay.hide {
+    animation: fadeOut 0.3s ease forwards;
+}
+
+/* === контейнер формы === */
+.form-container {
+    background-color: rgba(255, 255, 255, 0.9);
+    padding: 20px;
+    width: 300px;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+
+    z-index: 10000;  /* выше overlay */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+
+    animation: formFadeIn 0.25s ease;
+}
+
+.form-container h2 {
+    margin: 0 0 20px 0;
+    text-align: center;
+}
+
+/* поля */
+.form-container input {
+    width: 100%;
+    padding: 10px 0;
+    margin: 10px 0;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    box-sizing: border-box;
+}
+
+/* кнопки */
+.form-container button {
+    width: 100%;
+    padding: 10px 12px;
+    border: none;
+    border-radius: 6px;
+    background-color: #4CAF50;
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.05s ease;
+}
+.form-container button:hover {
+    background-color: #45a049;
+}
+.form-container button:active {
+    transform: scale(0.99);
+}
+
+/* адаптив */
+@media (max-width: 420px) {
+    .form-container {
+        width: 92vw;
+        padding: 16px;
+    }
+}

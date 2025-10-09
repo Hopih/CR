@@ -1,0 +1,57 @@
+.boards-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+}
+.boards-overlay.show {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.boards-container {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    max-width: 80vw;
+    max-height: 80vh;
+    overflow: auto;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    transform: scale(0.9);
+    transition: transform 0.25s ease;
+}
+.boards-overlay.show .boards-container {
+    transform: scale(1);
+}
+
+.boards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 200px);
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.board-thumb {
+    width: 200px;
+    height: 120px;
+    background: #f0f0f0;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 500;
+    cursor: pointer;
+    transition: transform .15s ease, background .15s ease;
+}
+
+.board-thumb.new-board {
+    background: #dff0d8;
+    border: 2px dashed #4caf50;
+    color: #4caf50;
+}
