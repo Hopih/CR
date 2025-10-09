@@ -8,7 +8,7 @@ namespace SimpleHttpListenerServer.Helpers;
 
 public static class JwtWorker
 {
-    private const string SecretKey = "your-256-bit-secret";
+    private const string SecretKey = "a-string-secret-at-least-256-bits-long";
 
     public static string GenerateJwtToken(User user)
     {
@@ -26,7 +26,8 @@ public static class JwtWorker
             issuer: "yourdomain.com",
             audience: "yourdomain.com",
             claims: claims,
-            expires: DateTime.Now.AddMinutes(30),
+            notBefore: DateTime.UtcNow,           
+            expires: DateTime.UtcNow.AddMinutes(30),
             signingCredentials: credentials);
 
         return new JwtSecurityTokenHandler().WriteToken(token);
@@ -35,6 +36,9 @@ public static class JwtWorker
     public static (bool isSuccess, User? user) ValidateJwtToken(string token)
     {
         var tokenHandler = new JwtSecurityTokenHandler();
+        
+        tokenHandler.InboundClaimTypeMap.Clear();
+        
         var validationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -43,7 +47,8 @@ public static class JwtWorker
             ValidateIssuerSigningKey = true,
             ValidIssuer = "yourdomain.com",
             ValidAudience = "yourdomain.com",
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(SecretKey))
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(SecretKey)),
+            ClockSkew = TimeSpan.FromMinutes(2) // ⏱ допускаем разницу системных часов
         };
 
         try
