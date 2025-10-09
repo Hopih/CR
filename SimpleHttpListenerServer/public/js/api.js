@@ -1,4 +1,5 @@
-// public/js/api.js
+import { safeFetch } from './safeFetch.js';
+
 const API_BASE = "/api";
 
 function authHeaders() {
@@ -41,7 +42,7 @@ export async function login(user) {
 }
 
 export async function getBoards() {
-    const res = await fetch(`${API_BASE}/boards`, {
+    const res = await safeFetch(`${API_BASE}/boards`, {
         method: "GET",
         headers: authHeaders()
     });
@@ -49,7 +50,7 @@ export async function getBoards() {
 }
 
 export async function createBoard(title) {
-    const res = await fetch(`${API_BASE}/boards`, {
+    const res = await safeFetch(`${API_BASE}/boards`, {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({ title })
@@ -102,7 +103,7 @@ export async function loadElements(boardId) {
 }
 
 export async function saveElements(boardId, elements) {
-    const res = await fetch(`${API_BASE}/boards/${boardId}/elements/bulk`, {
+    const res = await safeFetch(`${API_BASE}/boards/${boardId}/elements/bulk`, {
         method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({ elements })

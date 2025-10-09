@@ -16,6 +16,7 @@
 }
 
 .boards-container {
+    position: relative;
     background: white;
     border-radius: 12px;
     padding: 20px;
@@ -23,9 +24,16 @@
     max-height: 80vh;
     overflow: auto;
     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+
     transform: scale(0.9);
     transition: transform 0.25s ease;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;           /* 🔹 расстояние между контентом и кнопкой */
 }
+
 .boards-overlay.show .boards-container {
     transform: scale(1);
 }
@@ -54,4 +62,44 @@
     background: #dff0d8;
     border: 2px dashed #4caf50;
     color: #4caf50;
+}
+
+.boards-close-icon {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    font-size: 20px;
+    color: #777;
+    cursor: pointer;
+    transition: color 0.2s ease, transform 0.1s ease;
+}
+
+.boards-close-icon:hover {
+    color: #222;
+    transform: scale(1.1);
+}
+
+
+#close-boards {
+    align-self: center;             /* выравниваем по центру */
+    margin-top: 15px;               /* побольше отступа от сетки */
+    padding: 6px 14px;
+    border: none;
+    border-radius: 8px;
+    background-color: #e53935;
+    color: #fff;
+    font-weight: 500;
+    font-size: 14px;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+    transition: all 0.2s ease;
+}
+
+#close-boards:hover {
+    background-color: #c62828;
+    transform: translateY(-1px);
+}
+
+#close-boards:active {
+    transform: translateY(0);
 }
