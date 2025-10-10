@@ -3,6 +3,8 @@ import { renderSticker } from './sticker.js';
 import { clearBoardUI } from './board-utils.js';
 import { initStickerSelection } from './selection.js';
 import { updateBoardTitle } from './header.js';
+import { showPrompt } from "./showPrompt.js";
+import {showToast} from "./toast.js";
 
 export async function openBoards() {
     const overlay = document.getElementById('boards-overlay');
@@ -19,15 +21,16 @@ export async function openBoards() {
     newBoardBtn.className = 'board-thumb new-board';
     newBoardBtn.innerHTML = '<span class="plus-sign">+</span><div>New Board</div>';
     newBoardBtn.addEventListener('click', async () => {
-        const title = prompt("Enter new board name:", "Untitled Board");
-        if (!title) return;
+        showPrompt("Enter new board name:", "Untitled Board", async (title) =>
+        {
+            const board = await createBoard(title);
+            localStorage.setItem('boardId', board.id);
+            localStorage.setItem('boardTitle', title);
 
-        const board = await createBoard(title);
-        localStorage.setItem('boardId', board.id);
-        localStorage.setItem('boardTitle', title);
-
-        await switchBoard(board.id, title);
-        overlay.classList.remove('show');
+            await switchBoard(board.id, title);
+            overlay.classList.remove('show');
+            showToast(`Создана доска: ${title}`, "success");
+        });
     });
     grid.appendChild(newBoardBtn);
 
@@ -52,7 +55,7 @@ export async function openBoards() {
 async function switchBoard(boardId, boardTitle) {
     clearBoardUI(document.getElementById('board'));
     const elements = await loadElements(boardId);
-    elements.forEach(renderSticker);
+    elements.forEach(await renderSticker);
     initStickerSelection();
 
     updateBoardTitle(boardTitle);

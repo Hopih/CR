@@ -1,25 +1,46 @@
+let selectionInitialized = false;
+
 export function initStickerSelection() {
     const board = document.querySelector('.board');
-    if (!board) return;
+    if (!board || selectionInitialized) return;
+    selectionInitialized = true; // чтобы не навешивать повторно
 
-    board.addEventListener('click', (e) => {
-        const target = e.target.closest('.sticker');
-        const selected = document.querySelector('.sticker.selected');
+    let dragStarted = false;
+    let dragStartPos = { x: 0, y: 0 };
 
-        // если клик не по стикеру — снимаем выделение
-        if (!target) {
-            if (selected) selected.classList.remove('selected');
+    // обработка выделения
+    board.addEventListener('mousedown', (e) => {
+        if (e.target.closest('.sticker')) return; // позволяем drag
+        dragStarted = false;
+        dragStartPos = { x: e.clientX, y: e.clientY };
+    });
+
+    board.addEventListener('mousemove', (e) => {
+        if (e.target.closest('.sticker')) return;
+        if (Math.abs(e.clientX - dragStartPos.x) > 3 || Math.abs(e.clientY - dragStartPos.y) > 3)
+            dragStarted = true;
+    });
+
+    board.addEventListener('mouseup', (e) => {
+        if (dragStarted) {
+            dragStarted = false;
             return;
         }
 
-        // если клик по уже выделенному — снять выделение
+        const target = e.target.closest('.sticker');
+        const selected = document.querySelector('.sticker.selected');
+
+        if (!target) {
+            selected?.classList.remove('selected');
+            return;
+        }
+
         if (selected === target) {
             target.classList.remove('selected');
             return;
         }
 
-        // снять выделение со старого и выделить новый
-        if (selected) selected.classList.remove('selected');
+        selected?.classList.remove('selected');
         target.classList.add('selected');
     });
 

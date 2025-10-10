@@ -5,20 +5,14 @@ export async function createSticker(board) {
     sticker.classList.add('board-item', 'sticker');
     sticker.dataset.id = crypto.randomUUID(); // уникальный id
 
+    let text = "Новый стикер";
     try {
-        const quoteResponse = await fetch("/api/quotes/random", {
-            method: 'GET'
-        });
-
-        if (quoteResponse.ok) {
-            const quoteJson = await quoteResponse.json();
-            sticker.innerHTML = quoteJson.quote;
-        } else {
-            sticker.innerHTML = "Новый стикер";
+        const res = await fetch("/api/quotes/random");
+        if (res.ok) {
+            const { quote } = await res.json();
+            text = quote;
         }
-    } catch {
-        sticker.innerHTML = "Новый стикер";
-    }
+    } catch {}
 
     const boardRect = board.getBoundingClientRect();
     const w = 200, h = 200;
@@ -29,6 +23,10 @@ export async function createSticker(board) {
     sticker.style.top = Math.random() * (boardRect.height - h) + 'px';
     sticker.style.left = Math.random() * (boardRect.width - w) + 'px';
     sticker.dataset.color = getComputedStyle(sticker).backgroundColor;
+
+    sticker.textContent = text;
+    board.appendChild(sticker);
+    await fitStickerText(sticker);
 
     makeDraggable(sticker);
     makeResizable(sticker);
@@ -193,9 +191,73 @@ function makeEditable(sticker) {
     sticker.addEventListener('dblclick', () => showEditMode());
 }
 
+
+
+function setSizeKeepCenter(sticker, newWidth, newHeight) {
+    const cw = sticker.offsetWidth;
+    const ch = sticker.offsetHeight;
+
+    // читаем реальные координаты через getBoundingClientRect и позицию родителя
+    const parentRect = sticker.parentElement.getBoundingClientRect();
+    const rect = sticker.getBoundingClientRect();
+
+    const currentLeft = rect.left - parentRect.left;
+    const currentTop  = rect.top  - parentRect.top;
+
+    const cx = currentLeft + cw / 2;
+    const cy = currentTop  + ch / 2;
+
+    // аккуратно округляем до сотых, чтобы не накапливать субпиксели
+    const round = (n) => Math.round(n * 100) / 100;
+
+    sticker.style.width  = round(newWidth)  + 'px';
+    sticker.style.height = round(newHeight) + 'px';
+    sticker.style.left   = round(cx - newWidth  / 2) + 'px';
+    sticker.style.top    = round(cy - newHeight / 2) + 'px';
+}
+
+
+function isOverflow(el, tol = 0) {
+    let contentEl = el;
+
+    // если это sticker, ищем текстовый блок внутри
+    if (el.classList.contains('sticker')) {
+        const inner = el.querySelector('.input');
+        if (inner) contentEl = inner;
+    }
+
+    return (
+        contentEl.scrollHeight - contentEl.clientHeight > tol ||
+        contentEl.scrollWidth - contentEl.clientWidth > tol
+    );
+}
+
+export async function renderSticker(data) {
+    const board = document.querySelector('.board');
+    const div = document.createElement('div');
+    div.className = 'sticker board-item';
+    div.dataset.id = data.id;
+    div.style.left = data.x + 'px';
+    div.style.top = data.y + 'px';
+    div.style.width = data.width + 'px';
+    div.style.height = data.height + 'px';
+    div.textContent = data.text;
+    div.classList.add('board-item', 'sticker');
+
+    makeDraggable(div);
+    makeResizable(div);
+    makeEditable(div);
+    
+    board.appendChild(div);
+    await fitStickerText(div);
+}
+
+
 // --- автоадаптация текста ---
 function adjustFontSize(el, minSize = 12, maxSize = 48) {
-    const sticker = el.parentElement;
+    // el может быть либо .sticker, либо внутренний .input
+    const sticker = el.classList.contains('sticker') ? el : el.parentElement;
+    if (!sticker) return;
 
     // минимально допустимый размер контейнера (исходный)
     if (!sticker.dataset.initialWidth) {
@@ -269,50 +331,34 @@ function adjustFontSize(el, minSize = 12, maxSize = 48) {
     }
 }
 
-function setSizeKeepCenter(sticker, newWidth, newHeight) {
-    const cw = sticker.offsetWidth;
-    const ch = sticker.offsetHeight;
+const nextFrame = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
-    // читаем реальные координаты через getBoundingClientRect и позицию родителя
-    const parentRect = sticker.parentElement.getBoundingClientRect();
-    const rect = sticker.getBoundingClientRect();
+export async function fitStickerText(sticker) {
+    if (!sticker) return;
+    if (!sticker.isConnected) return;
 
-    const currentLeft = rect.left - parentRect.left;
-    const currentTop  = rect.top  - parentRect.top;
+    // ждем layout
+    await nextFrame();
+    if (document.fonts && document.fonts.ready) {
+        try { await document.fonts.ready; } catch {}
+    }
 
-    const cx = currentLeft + cw / 2;
-    const cy = currentTop  + ch / 2;
+    // Находим, где текст — в input или прямо в sticker
+    const contentEl = sticker.querySelector('.input') || sticker;
 
-    // аккуратно округляем до сотых, чтобы не накапливать субпиксели
-    const round = (n) => Math.round(n * 100) / 100;
+    // Временно отключаем transition — чтобы не было скачков
+    const prevTransition = sticker.style.transition;
+    sticker.style.transition = 'none';
 
-    sticker.style.width  = round(newWidth)  + 'px';
-    sticker.style.height = round(newHeight) + 'px';
-    sticker.style.left   = round(cx - newWidth  / 2) + 'px';
-    sticker.style.top    = round(cy - newHeight / 2) + 'px';
-}
+    // Немного нормализации
+    contentEl.style.whiteSpace = 'normal';
+    contentEl.style.wordBreak = 'break-word';
+    contentEl.style.overflowWrap = 'anywhere';
+    contentEl.style.overflow = 'hidden';
 
+    // ⚙️ Запускаем твой fit-алгоритм
+    adjustFontSize(contentEl);
 
-function isOverflow(el, tol = 0) {
-    return (el.scrollHeight - el.clientHeight > tol) ||
-        (el.scrollWidth  - el.clientWidth  > tol);
-}
-
-export function renderSticker(data) {
-    const board = document.querySelector('.board');
-    const div = document.createElement('div');
-    div.className = 'sticker board-item';
-    div.dataset.id = data.id;
-    div.style.left = data.x + 'px';
-    div.style.top = data.y + 'px';
-    div.style.width = data.width + 'px';
-    div.style.height = data.height + 'px';
-    div.textContent = data.text;
-    div.classList.add('board-item', 'sticker');
-
-    makeDraggable(div);
-    makeResizable(div);
-    makeEditable(div);
-    
-    board.appendChild(div);
+    // Возвращаем transition
+    sticker.style.transition = prevTransition;
 }

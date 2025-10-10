@@ -7,8 +7,7 @@ export function initToolBar(board) {
     const saveButton = document.getElementById('saveButton');
 
     addStickerBtn.addEventListener('click', async () => {
-        const sticker = await createSticker(board);
-        board.appendChild(sticker);
+        await createSticker(board);
     });
 
     saveButton.addEventListener('click', async () => {

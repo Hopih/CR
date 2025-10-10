@@ -1,0 +1,49 @@
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 99999;
+}
+
+.toast {
+    min-width: 240px;
+    padding: 12px 18px;
+    border-radius: 8px;
+    font-weight: 500;
+    color: #fff;
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.toast.hide {
+    opacity: 0;
+    transform: translateY(-10px);
+}
+
+/* Типы уведомлений */
+.toast-info {
+    background-color: #1976d2;
+}
+
+.toast-success {
+    background-color: #43a047;
+}
+
+.toast-warning {
+    background-color: #fbc02d;
+    color: #222;
+}
+
+.toast-error {
+    background-color: #d32f2f;
+}

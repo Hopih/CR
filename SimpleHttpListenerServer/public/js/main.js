@@ -38,7 +38,7 @@ async function init() {
 
     // Подгружаем элементы доски
     const elements = await loadElements(boardId);
-    elements.forEach(renderSticker);
+    elements.forEach(await renderSticker);
 
 
     initStickerSelection();
