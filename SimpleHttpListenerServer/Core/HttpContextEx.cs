@@ -7,6 +7,21 @@ using System.Text.Json;
 
 public sealed class HttpContextEx
 {
+    public HttpContextEx(HttpListenerContext raw, IServiceProvider sp)
+    {
+        Raw = raw;
+        Services = sp;
+        var cts = new CancellationTokenSource();
+        Raw.Response.OutputStream
+            .BeginWrite([], 0, 0, _ =>
+            {
+                if (!Raw.Response.OutputStream.CanWrite)
+                    cts.Cancel();
+            }, null);
+
+        RequestAborted = cts.Token;
+    }
+
     public HttpListenerContext Raw { get; }
     public IServiceProvider Services { get; }
 
@@ -20,29 +35,9 @@ public sealed class HttpContextEx
     
     public object? BoundModel { get; set; }
     public Dictionary<string, object> Items { get; } = new();
-
-    public HttpContextEx(HttpListenerContext raw, IServiceProvider sp) { Raw = raw; Services = sp; }
-
-    public async Task WriteJsonAsync(object value, int status = 200)
-    {
-        Response.StatusCode = status;
-        Response.ContentType = "application/json; charset=utf-8";
-        await using var sw = new StreamWriter(Response.OutputStream);
-        await sw.WriteAsync(JsonSerializer.Serialize(value));
-    }
-}
-
-public sealed record JwtPayload(string? Sub, string? Role, DateTime? Exp);
-
-// простейший JSON-биндер (1 параметр модели на метод)
-public static class JsonBodyBinder
-{
-    public static async Task<object?> BindAsync(HttpListenerRequest req, Type modelType)
-    {
-        using var sr = new StreamReader(req.InputStream, req.ContentEncoding);
-        var json = await sr.ReadToEndAsync();
-        return string.IsNullOrWhiteSpace(json)
-            ? Activator.CreateInstance(modelType)
-            : JsonSerializer.Deserialize(json, modelType);
-    }
+    
+    public RouteEntry? Route { get; set; }
+    public Dictionary<string, string>? RouteValues { get; set; }
+    
+    public CancellationToken RequestAborted { get; }
 }

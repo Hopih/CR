@@ -9,16 +9,16 @@ namespace SimpleHttpListenerServer.Controllers;
 public sealed class ElementsController(ElementsRepository elements, BoardsRepository boards)
 {
     [HttpGet("/api/boards/{boardId}/elements")]
-    public async Task<object> GetBoardElements(Guid boardId, HttpContextEx ctx, CancellationToken cancel = default)
+    public async Task<object> GetBoardElements(Guid boardId, HttpContextEx ctx)
     {
         var guestKey = ctx.Request.Cookies?["guest_board_key"]?.Value ?? ctx.Request.Headers["X-Guest-Key"];
-        if (!await CanAccessBoard(boardId, ctx.AuthUser, guestKey, cancel))
+        if (!await CanAccessBoard(boardId, ctx.AuthUser, guestKey, ctx.RequestAborted))
         {
             ctx.Response.StatusCode = 403;
             return new { error = "forbidden" };
         }
 
-        var rows = await elements.GetElementsWithStickersAsync(boardId, cancel);
+        var rows = await elements.GetElementsWithStickersAsync(boardId, ctx.RequestAborted);
         return rows.Select(r => new ElementDto
         {
             Id = r.Id,
@@ -36,10 +36,10 @@ public sealed class ElementsController(ElementsRepository elements, BoardsReposi
     }
 
     [HttpPost("/api/boards/{boardId}/elements/bulk")]
-    public async Task<object> UpsertBoardElements(Guid boardId, BulkElementsRequest dto, HttpContextEx ctx, CancellationToken cancel = default)
+    public async Task<object> UpsertBoardElements(Guid boardId, BulkElementsRequest dto, HttpContextEx ctx)
     {
         var guestKey = ctx.Request.Cookies?["guest_board_key"]?.Value ?? ctx.Request.Headers["X-Guest-Key"];
-        if (!await CanAccessBoard(boardId, ctx.AuthUser, guestKey, cancel))
+        if (!await CanAccessBoard(boardId, ctx.AuthUser, guestKey, ctx.RequestAborted))
         {
             ctx.Response.StatusCode = 403;
             return new { error = "forbidden" };
@@ -68,7 +68,7 @@ public sealed class ElementsController(ElementsRepository elements, BoardsReposi
             FontSize = e.FontSize
         }).ToList();
 
-        await elements.SyncBoardElementsAsync(boardId, ctx.AuthUser?.Id, items, cancel);
+        await elements.SyncBoardElementsAsync(boardId, ctx.AuthUser?.Id, items, ctx.RequestAborted);
 
         return new { updated = items.Count };
     }
@@ -77,22 +77,28 @@ public sealed class ElementsController(ElementsRepository elements, BoardsReposi
     private async Task<bool> CanAccessBoard(Guid boardId, User? user, string? guestKey, CancellationToken cancel = default)
     {
         var meta = await boards.GetBoardMetaAsync(boardId, cancel);
-        if (meta is null) return false;
+        if (meta is null)
+        {
+            Console.WriteLine($"[ACCESS] board {boardId} not found");
+            return false;
+        }
 
         if (user?.Id != null && meta.Value.OwnerUserId == user.Id)
         {
+            Console.WriteLine($"[ACCESS] board {boardId} allowed by owner {user.Id}");
             return true;
         }
 
         if (meta.Value is not { IsTemporary: true, TempKey: { } tk, TempExpiresAt: { } exp })
         {
+            Console.WriteLine($"[ACCESS] board {boardId} not temporary");
             return false;
         }
 
+        Console.WriteLine($"[ACCESS] guestKey={guestKey}, expected={tk}, exp={exp}, now={DateTime.UtcNow}");
+
         if (!Guid.TryParse(guestKey, out var gk))
-        {
             return false;
-        }
 
         if (gk == tk && exp < DateTime.UtcNow)
         {
@@ -100,6 +106,6 @@ public sealed class ElementsController(ElementsRepository elements, BoardsReposi
             return false;
         }
 
-        return gk == tk && exp > DateTime.UtcNow;
+        return !string.IsNullOrEmpty(guestKey) && gk == tk && exp > DateTime.UtcNow;
     }
 }

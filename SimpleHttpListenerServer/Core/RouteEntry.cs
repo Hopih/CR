@@ -41,7 +41,13 @@ public sealed partial class RouteTable
                 {
                     var (rx, names) = TemplateToRegex(ha.Template);
                     var modelParam = m.GetParameters()
-                        .FirstOrDefault(p => p.ParameterType != typeof(HttpContextEx)); // 1 модельный параметр по соглашению
+                        .FirstOrDefault(p =>
+                            p.ParameterType != typeof(HttpContextEx) &&
+                            p.ParameterType != typeof(CancellationToken) &&
+                            !p.ParameterType.IsPrimitive &&
+                            p.ParameterType != typeof(string) &&
+                            !p.ParameterType.IsEnum &&
+                            !p.ParameterType.IsValueType); // исключаем Guid, int, bool, etc.
 
                     _routes.Add(new RouteEntry
                     {

@@ -24,13 +24,13 @@ public static class ApiHelpers
             : JsonSerializer.Deserialize<T>(body, JsonOpts);
     }
     
-    public static async Task<object?> BindAsync(this HttpListenerRequest req, Type modelType)
+    public static async Task<object?> BindAsync(this HttpListenerRequest req, Type modelType, CancellationToken token =  default)
     {
         using var sr = new StreamReader(req.InputStream, req.ContentEncoding);
-        var json = await sr.ReadToEndAsync();
+        var json = await sr.ReadToEndAsync(token);
         return string.IsNullOrWhiteSpace(json)
             ? Activator.CreateInstance(modelType)
-            : JsonSerializer.Deserialize(json, modelType);
+            : JsonSerializer.Deserialize(json, modelType, JsonOpts);
     }
 
     public static async Task WriteJsonAsync(this HttpListenerResponse res, object obj, int status = 200, CancellationToken? ct = null)

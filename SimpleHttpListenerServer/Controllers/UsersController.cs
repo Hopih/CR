@@ -11,11 +11,11 @@ public sealed class UsersController(UsersRepository users)
 {
     [HttpPost("/api/user/signup")]
     [Authorize(AllowAnonymous = true)]
-    public async Task<object> Signup(SignupRequest dto, HttpContextEx ctx, CancellationToken cancel = default)
+    public async Task<object> Signup(SignupRequest dto, HttpContextEx ctx)
     {
         try
         {
-            var userId = await users.CreateUserAsync(dto.Login, dto.Password, cancel);
+            var userId = await users.CreateUserAsync(dto.Login, dto.Password, ctx.RequestAborted);
             if (userId is null)
             {
                 return new
@@ -43,9 +43,9 @@ public sealed class UsersController(UsersRepository users)
 
     [HttpPost("/api/user/login")]
     [Authorize(AllowAnonymous = true)]
-    public async Task<object> Login(LoginRequest dto, CancellationToken cancel = default)
+    public async Task<object> Login(LoginRequest dto, HttpContextEx ctx)
     {
-        var row = await users.GetByLoginAsync(dto.Login, cancel);
+        var row = await users.GetByLoginAsync(dto.Login, ctx.RequestAborted);
         if (row is null || !MyPasswordHasher.Validate($"{row.Hash};{row.Salt}", dto.Password))
         {
             return new { error = "invalid_credentials" };

@@ -23,7 +23,8 @@ export async function signup(user) {
     const res = await fetch(`${API_BASE}/user/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(user)
+        body: JSON.stringify(user),
+        credentials: 'include'
     });
     return res.json();
 }
@@ -32,7 +33,8 @@ export async function login(user) {
     const res = await fetch(`${API_BASE}/user/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(user)
+        body: JSON.stringify(user),
+        credentials: 'include'
     });
     const data = await res.json();
     if (res.ok) {
@@ -44,7 +46,8 @@ export async function login(user) {
 export async function getBoards() {
     const res = await safeFetch(`${API_BASE}/boards`, {
         method: "GET",
-        headers: authHeaders()
+        headers: authHeaders(),
+        credentials: 'include'
     });
     return res.json();
 }
@@ -53,7 +56,8 @@ export async function createBoard(title) {
     const res = await safeFetch(`${API_BASE}/boards`, {
         method: "POST",
         headers: authHeaders(),
-        body: JSON.stringify({ title })
+        body: JSON.stringify({ title }),
+        credentials: 'include'
     });
     return res.json();
 }
@@ -62,7 +66,8 @@ export async function createGuestBoard(title = "Guest Board") {
     const res = await fetch(`${API_BASE}/guest/board`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title })
+        body: JSON.stringify({ title }),
+        credentials: 'include'
     });
     const data = await res.json();
     localStorage.setItem("boardId", data.boardId);
@@ -76,6 +81,7 @@ export async function validateGuestBoard() {
 
     const res = await fetch(`/api/boards/${boardId}/elements`, {
         headers: authHeaders(),
+        credentials: 'include'
     });
 
     // доступен — возвращаем true
@@ -94,7 +100,8 @@ export async function validateGuestBoard() {
 
 export async function loadElements(boardId) {
     const res = await fetch(`${API_BASE}/boards/${boardId}/elements`, {
-        headers: authHeaders()
+        headers: authHeaders(),
+        credentials: 'include'
     });
     if(res.ok) {
         return await res.json();
@@ -106,7 +113,8 @@ export async function saveElements(boardId, elements) {
     const res = await safeFetch(`${API_BASE}/boards/${boardId}/elements/bulk`, {
         method: "POST",
         headers: authHeaders(),
-        body: JSON.stringify({ elements })
+        body: JSON.stringify({ elements }),
+        credentials: 'include'
     });
     return await res.json();
 }

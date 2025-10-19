@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
+using SimpleHttpListenerServer;
 using SimpleHttpListenerServer.Core;
 using SimpleHttpListenerServer.Database;
 using SimpleHttpListenerServer.Entities;
@@ -13,18 +14,22 @@ const string connectionString = "Host=localhost;Username=postgres;Password=postg
 var services = new ServiceCollection();
 
 // добавляем middleware как Singleton
-services.AddSingleton<BoardsRepository>();
-services.AddSingleton<ElementsRepository>();
-services.AddSingleton<UsersRepository>();
+services.AddTransient<BoardsRepository>();
+services.AddTransient<ElementsRepository>();
+services.AddTransient<UsersRepository>();
+services.AddSingleton<QuotesApiClient>();
 
 // Middleware, Router и т.д.
 services.AddSingleton<AuthMiddleware>();
 services.AddSingleton<RouteTable>();
 services.AddSingleton<ErrorHandlingMiddleware>();
 services.AddSingleton<ValidationMiddleware>();
+services.AddSingleton<RoutingMiddleware>();
 services.AddSingleton(new StaticFileMiddleware(Path.Combine(AppContext.BaseDirectory, "public")));
+services.AddSingleton<ExecutionMiddleware>();
 
 services.RegisterValidators();
+services.AddControllers();
 
 
 var maxConcurrentRequests = 50 * Environment.ProcessorCount;
@@ -39,18 +44,14 @@ services.AddSingleton(sp =>
 
 
 var sp = services.BuildServiceProvider();
-sp.AddControllers();
+sp.UseControllers();
 
 var pipeline = new MiddlewarePipeline()
     .Use<ErrorHandlingMiddleware>(sp)
     .Use<AuthMiddleware>(sp)
     .Use<ValidationMiddleware>(sp)
-    .Use(async (ctx, next) =>
-    {
-        var routeTable = sp.GetService<RouteTable>();
-        var router = new RoutingMiddleware(routeTable!, sp);
-        await router.InvokeAsync(ctx, next);
-    })
+    .Use<RoutingMiddleware>(sp)
+    .Use<ExecutionMiddleware>(sp)
     .Use<StaticFileMiddleware>(sp);
     
     

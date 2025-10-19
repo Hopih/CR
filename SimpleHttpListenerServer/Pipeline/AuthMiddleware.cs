@@ -3,9 +3,9 @@ using SimpleHttpListenerServer.Helpers;
 
 namespace SimpleHttpListenerServer.Pipeline;
 
-public sealed class AuthMiddleware : IMiddleware
+public sealed class AuthMiddleware : BaseMiddleware
 {
-    public Task InvokeAsync(HttpContextEx ctx, Func<Task> next)
+    protected override Task InvokeCoreAsync(HttpContextEx ctx, Func<Task> next, CancellationToken ct)
     {
         ctx.GuestToken = ctx.Request.Headers["X-Guest-Token"] ?? ctx.Request.Cookies?["guest"]?.Value;
         

@@ -24,10 +24,9 @@ public class HttpServer
 
         while (_listener.IsListening && !token.IsCancellationRequested)
         {
+            var ctx = await _listener.GetContextAsync();
             try
             {
-                var ctx = await _listener.GetContextAsync();
-                
                 _ = Task.Run(async () =>
                 {
                     await _semaphore.WaitAsync(token);
@@ -38,6 +37,8 @@ public class HttpServer
                     finally
                     {
                         _semaphore.Release();
+                        ctx.Response.OutputStream.Close();
+                        ctx.Response.Close();
                     }
                 }, token);
             }

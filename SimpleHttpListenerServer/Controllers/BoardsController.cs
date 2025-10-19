@@ -5,28 +5,21 @@ using SimpleHttpListenerServer.Models;
 namespace SimpleHttpListenerServer.Controllers;
 
 [Authorize(Required = AuthTokenKind.Jwt)]
-public sealed class BoardsController
+public sealed class BoardsController(BoardsRepository boards)
 {
-    private readonly BoardsRepository _boards;
-
-    public BoardsController(BoardsRepository boards)
-    {
-        _boards = boards;
-    }
-
     [HttpGet("/api/boards")]
-    public async Task<object> GetUserBoards(HttpContextEx ctx, CancellationToken cancel = default)
+    public async Task<object> GetUserBoards(HttpContextEx ctx)
     {
         var user = ctx.AuthUser!;
-        var boards = await _boards.GetUserBoardsAsync(user.Id, cancel);
-        return boards.Select(b => new { b.Id, b.Title }).ToList();
+        var boards1 = await boards.GetUserBoardsAsync(user.Id, ctx.RequestAborted);
+        return boards1.Select(b => new { b.Id, b.Title }).ToList();
     }
 
     [HttpPost("/api/boards")]
-    public async Task<object> CreateUserBoard(CreateBoardRequest dto, HttpContextEx ctx, CancellationToken cancel = default)
+    public async Task<object> CreateUserBoard(CreateBoardRequest dto, HttpContextEx ctx)
     {
         var user = ctx.AuthUser!;
-        var id = await _boards.CreateUserBoardAsync(user.Id, dto.Title, cancel);
+        var id = await boards.CreateUserBoardAsync(user.Id, dto.Title, ctx.RequestAborted);
         ctx.Response.StatusCode = 201;
         return new { id };
     }

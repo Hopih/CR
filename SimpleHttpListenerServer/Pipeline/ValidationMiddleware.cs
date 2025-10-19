@@ -1,50 +1,31 @@
+using FluentValidation;
 using SimpleHttpListenerServer.Core;
 
 namespace SimpleHttpListenerServer.Pipeline;
 
 using FluentValidation.Results;
 
-public sealed class ValidationMiddleware(IServiceProvider sp) : IMiddleware
+public sealed class ValidationMiddleware(IServiceProvider sp) : BaseMiddleware
 {
-    public async Task InvokeAsync(HttpContextEx ctx, Func<Task> next)
+    protected override async Task InvokeCoreAsync(HttpContextEx ctx, Func<Task> next, CancellationToken ct)
     {
-        // если модель уже привязана (например, роутером или binder'ом)
-        var model = ctx.BoundModel;
-        if (model is not null)
+        if (ctx.BoundModel is not null)
         {
-            // ищем IValidator<T> для типа модели
-            var validatorType = typeof(IValidator<>).MakeGenericType(model.GetType());
+            var modelType = ctx.BoundModel.GetType();
+            var validatorType = typeof(AbstractValidator<>).MakeGenericType(modelType);
             var validator = sp.GetService(validatorType);
 
             if (validator is not null)
             {
-                // вызываем ValidateAsync(T instance)
-                var method = validatorType.GetMethod("ValidateAsync", [model.GetType(), typeof(CancellationToken)])
-                             ?? validatorType.GetMethod("Validate", [model.GetType()]);
-
-                if (method is not null)
+                var validate = validator.GetType().GetMethod("Validate", [modelType]);
+                var result = (ValidationResult)validate!.Invoke(validator, [ctx.BoundModel])!;
+                if (!result.IsValid)
                 {
-                    object? resultObj;
-
-                    if (method.Name == "ValidateAsync")
-                        resultObj = await (dynamic)method.Invoke(validator, [model, CancellationToken.None])!;
-                    else
-                        resultObj = method.Invoke(validator, [model]);
-
-                    if (resultObj is ValidationResult { IsValid: false } result)
-                    {
-                        ctx.Response.StatusCode = 400;
-                        await ctx.WriteJsonAsync(new
-                        {
-                            error = "ValidationFailed",
-                            messages = result.Errors.Select(e => e.ErrorMessage).ToArray()
-                        }, 400);
-                        return;
-                    }
+                    throw new ValidationException(result.Errors.Select(e => e.ErrorMessage));
                 }
             }
         }
 
-        await next();
+        await next(); 
     }
 }

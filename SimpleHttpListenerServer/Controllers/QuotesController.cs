@@ -6,9 +6,9 @@ namespace SimpleHttpListenerServer.Controllers;
 public sealed class QuotesController(QuotesApiClient quotes)
 {
     [HttpGet("/api/quotes/random")]
-    public async Task<object> GetRandomQuotes(CancellationToken cancel = default)
+    public async Task<object> GetRandomQuotes(HttpContextEx ctx)
     {
-        var quote = await quotes.GetRandomQuoteAsync(cancel);
+        var quote = await quotes.GetRandomQuoteAsync(ctx.RequestAborted);
         return quote;
     }
 }

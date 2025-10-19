@@ -4,11 +4,11 @@ using SimpleHttpListenerServer.Core;
 
 namespace SimpleHttpListenerServer.Pipeline;
 
-public sealed class StaticFileMiddleware(string root) : IMiddleware
+public sealed class StaticFileMiddleware(string root) : BaseMiddleware
 {
     private static readonly ConcurrentDictionary<string, string> MimeCache = new();
 
-    public async Task InvokeAsync(HttpContextEx ctx, Func<Task> next)
+    protected override async Task InvokeCoreAsync(HttpContextEx ctx, Func<Task> next, CancellationToken ct)
     {
         var request = ctx.Request;
         var response = ctx.Response;
@@ -46,7 +46,7 @@ public sealed class StaticFileMiddleware(string root) : IMiddleware
         }
 
         await using var fs = File.OpenRead(filePath);
-        await fs.CopyToAsync(response.OutputStream);
+        await fs.CopyToAsync(response.OutputStream, ct);
     }
 
     private static string GetCachedMimeType(string filePath)
