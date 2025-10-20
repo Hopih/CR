@@ -9,6 +9,12 @@ public sealed class MiddlewarePipeline
         _stack.Add(inline); 
         return this;
     }
+    public MiddlewarePipeline Use<T>(ServiceProvider sp)
+        where T : IMiddleware
+    {
+        var m = (IMiddleware)sp.GetRequiredService(typeof(T));
+        return Use(m.InvokeAsync);
+    }
 
     public async Task ExecuteAsync(HttpContextEx ctx)
     {

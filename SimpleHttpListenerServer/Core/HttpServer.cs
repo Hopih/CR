@@ -17,22 +17,22 @@ public class HttpServer
         _semaphore = new SemaphoreSlim(maxConcurrentRequests);
     }
 
-    public async Task StartAsync(CancellationToken token)
+    public async Task StartAsync(CancellationTokenSource cts)
     {
         _listener.Start();
         Console.WriteLine($"Server started at {string.Join(", ", _listener.Prefixes)}");
 
-        while (_listener.IsListening && !token.IsCancellationRequested)
+        while (_listener.IsListening && !cts.Token.IsCancellationRequested)
         {
             var ctx = await _listener.GetContextAsync();
             try
             {
                 _ = Task.Run(async () =>
                 {
-                    await _semaphore.WaitAsync(token);
+                    await _semaphore.WaitAsync(cts.Token);
                     try
                     {
-                        await _middlewarePipeline.ExecuteAsync(new HttpContextEx(ctx, _services));
+                        await _middlewarePipeline.ExecuteAsync(new HttpContextEx(ctx, _services, cts));
                     }
                     finally
                     {
@@ -40,7 +40,7 @@ public class HttpServer
                         ctx.Response.OutputStream.Close();
                         ctx.Response.Close();
                     }
-                }, token);
+                }, cts.Token);
             }
             catch (HttpListenerException)
             {

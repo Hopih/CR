@@ -11,8 +11,7 @@ public sealed class ElementsController(ElementsRepository elements, BoardsReposi
     [HttpGet("/api/boards/{boardId}/elements")]
     public async Task<IActionResult> GetBoardElements(Guid boardId)
     {
-        var guestKey = HttpContext.Request.Cookies?["guest_board_key"]?.Value ?? HttpContext.Request.Headers["X-Guest-Key"];
-        if (!await CanAccessBoard(boardId, HttpContext.AuthUser, guestKey, HttpContext.RequestAborted))
+        if (!await CanAccessBoard(boardId, HttpContext.AuthUser, HttpContext.GuestToken, HttpContext.RequestAborted))
         {
             return Forbid();
         }
@@ -40,9 +39,7 @@ public sealed class ElementsController(ElementsRepository elements, BoardsReposi
     [HttpPost("/api/boards/{boardId}/elements/bulk")]
     public async Task<IActionResult> UpsertBoardElements(Guid boardId, BulkElementsRequest dto)
     {
-        var guestKey = HttpContext.Request.Cookies["guest_board_key"]?.Value ?? HttpContext.Request.Headers["X-Guest-Key"];
-        
-        if (!await CanAccessBoard(boardId, HttpContext.AuthUser, guestKey, HttpContext.RequestAborted))
+        if (!await CanAccessBoard(boardId, HttpContext.AuthUser, HttpContext.GuestToken, HttpContext.RequestAborted))
         {
             return Forbid();
         }

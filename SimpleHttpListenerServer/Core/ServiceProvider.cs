@@ -201,10 +201,8 @@ public sealed class ServiceProvider : IServiceProvider, IDisposable
         var implType = descriptor.ImplementationType ?? descriptor.ServiceType;
 
         // защита от рекурсии (циклические зависимости)
-        if (_creationStack.ContainsKey(implType))
+        if (!_creationStack.TryAdd(implType, true))
             throw new InvalidOperationException($"Circular dependency detected: {implType}");
-
-        _creationStack[implType] = true;
 
         try
         {

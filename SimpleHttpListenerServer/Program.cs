@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Npgsql;
+﻿using Npgsql;
 using SimpleHttpListenerServer;
 using SimpleHttpListenerServer.Core;
 using SimpleHttpListenerServer.Database;
@@ -64,4 +63,4 @@ Console.CancelKeyPress += (_, e) =>
     cts.Cancel();
 };
 
-await server.StartAsync(cts.Token);
+await server.StartAsync(cts);

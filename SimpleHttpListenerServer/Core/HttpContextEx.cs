@@ -3,23 +3,20 @@ using SimpleHttpListenerServer.Entities;
 
 namespace SimpleHttpListenerServer.Core;
 
-using System.Text.Json;
-
 public sealed class HttpContextEx
 {
-    public HttpContextEx(HttpListenerContext raw, IServiceProvider sp)
+    public HttpContextEx(HttpListenerContext raw, IServiceProvider sp , CancellationTokenSource token)
     {
         Raw = raw;
         Services = sp;
-        var cts = new CancellationTokenSource();
         Raw.Response.OutputStream
             .BeginWrite([], 0, 0, _ =>
             {
                 if (!Raw.Response.OutputStream.CanWrite)
-                    cts.Cancel();
+                    token.Cancel();
             }, null);
 
-        RequestAborted = cts.Token;
+        RequestAborted = token.Token;
     }
 
     public HttpListenerContext Raw { get; }
@@ -29,7 +26,6 @@ public sealed class HttpContextEx
     public HttpListenerResponse Response => Raw.Response;
     
     public string? GuestToken { get; set; }
-    public string? JwtToken { get; set; }
     public User? AuthUser { get; set; }
     public bool IsAuthenticated { get; set; }
     

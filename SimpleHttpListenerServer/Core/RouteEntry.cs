@@ -12,7 +12,7 @@ public sealed class RouteEntry
     public MethodInfo Action { get; init; } = default!;
     public AuthorizeAttribute? Auth { get; init; }
     public ParameterInfo? ModelParam { get; init; } // если метод принимает один параметр-модель
-    public string[] ParamNames { get; init; } = Array.Empty<string>();
+    public string[] ParamNames { get; init; } = [];
 }
 
 
