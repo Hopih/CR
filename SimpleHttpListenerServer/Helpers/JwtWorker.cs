@@ -8,8 +8,11 @@ namespace SimpleHttpListenerServer.Helpers;
 
 public static class JwtWorker
 {
-    private const string SecretKey = "a-string-secret-at-least-256-bits-long";
-
+    public static string SecretKey { get; set; } = null!;
+    public static int TimeToLeave { get; set; }
+    public static string Audience { get; set; } = null!;
+    public static string Issuer { get; set; } = null!;
+    
     public static string GenerateJwtToken(User user)
     {
         var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(SecretKey));
@@ -18,16 +21,15 @@ public static class JwtWorker
         var claims = new[]
         {
             new Claim("sub", user.Id.ToString()),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new Claim("Role", user.Role!)
         };
 
         var token = new JwtSecurityToken(
-            issuer: "yourdomain.com",
-            audience: "yourdomain.com",
+            issuer: Issuer,
+            audience: Audience,
             claims: claims,
             notBefore: DateTime.UtcNow,           
-            expires: DateTime.UtcNow.AddMinutes(30),
+            expires: DateTime.UtcNow.AddMinutes(TimeToLeave),
             signingCredentials: credentials);
 
         return new JwtSecurityTokenHandler().WriteToken(token);
@@ -45,15 +47,15 @@ public static class JwtWorker
             ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            ValidIssuer = "yourdomain.com",
-            ValidAudience = "yourdomain.com",
+            ValidIssuer = Issuer,
+            ValidAudience = Audience,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(SecretKey)),
-            ClockSkew = TimeSpan.FromMinutes(2) // ⏱ допускаем разницу системных часов
+            ClockSkew = TimeSpan.FromMinutes(2)
         };
 
         try
         {
-            var claimsPrincipal = tokenHandler.ValidateToken(token, validationParameters, out SecurityToken _);
+            var claimsPrincipal = tokenHandler.ValidateToken(token, validationParameters, out _);
             var userId = claimsPrincipal.Claims.First(x => x.Type == JwtRegisteredClaimNames.Sub).Value;
             var roleClaim = claimsPrincipal.Claims.First(x => x.Type == "Role").Value;
             return (true, new User
@@ -64,7 +66,7 @@ public static class JwtWorker
         }
         catch
         {
-            return (false, default);
+            return (false, null);
         }
     }
 }

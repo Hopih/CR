@@ -1,4 +1,5 @@
-﻿using Npgsql;
+﻿using Microsoft.Extensions.Configuration;
+using Npgsql;
 using SimpleHttpListenerServer;
 using SimpleHttpListenerServer.Core;
 using SimpleHttpListenerServer.Database;
@@ -7,8 +8,9 @@ using SimpleHttpListenerServer.Helpers;
 using SimpleHttpListenerServer.Pipeline;
 using ServiceCollection = SimpleHttpListenerServer.Core.ServiceCollection;
 
-const string connectionString = "Host=localhost;Username=postgres;Password=postgres;Database=white_board";
-
+var configuration = new ConfigurationBuilder()
+    .AddJsonFile("appsettings.json", false, true)
+    .Build();
 
 var services = new ServiceCollection();
 
@@ -24,19 +26,24 @@ services.AddSingleton<RouteTable>();
 services.AddSingleton<ErrorHandlingMiddleware>();
 services.AddSingleton<ValidationMiddleware>();
 services.AddSingleton<RoutingMiddleware>();
-services.AddSingleton(new StaticFileMiddleware(Path.Combine(AppContext.BaseDirectory, "public")));
+services.AddSingleton(new StaticFileMiddleware(Path.Combine(AppContext.BaseDirectory, configuration["StaticFiles"]!)));
 services.AddSingleton<ExecutionMiddleware>();
 
 services.RegisterValidators();
 services.AddControllers();
 
 
-var maxConcurrentRequests = 50 * Environment.ProcessorCount;
+var maxConcurrentRequests = configuration.GetValue<int>("CountOfProcess") * Environment.ProcessorCount;
+
+JwtWorker.SecretKey = configuration["Jwt:SecretKey"]!;
+JwtWorker.Audience = configuration["Jwt:Audience"]!;
+JwtWorker.Issuer = configuration["Jwt:Issuer"]!;
+JwtWorker.TimeToLeave = configuration.GetValue<int>("Jwt:TimeToLeave")!;
 
 
-services.AddSingleton(sp =>
+services.AddSingleton(_ =>
 {
-    var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
+    var dataSourceBuilder = new NpgsqlDataSourceBuilder(configuration["Database:ConnectionString"]!);
     dataSourceBuilder.MapEnum<ElementType>("board_element_type");
     return dataSourceBuilder.Build();
 });
@@ -54,13 +61,8 @@ var pipeline = new MiddlewarePipeline()
     .Use<StaticFileMiddleware>(sp);
     
     
-var server = new HttpServer("http://localhost:5000/", pipeline, sp, maxConcurrentRequests);
+var server = new HttpServer(configuration["Host"]!, pipeline, sp, maxConcurrentRequests);
 
 var cts = new CancellationTokenSource();
-Console.CancelKeyPress += (_, e) =>
-{
-    e.Cancel = true;
-    cts.Cancel();
-};
 
 await server.StartAsync(cts);

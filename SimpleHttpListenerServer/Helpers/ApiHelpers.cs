@@ -12,17 +12,11 @@ public static class ApiHelpers
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = false,
-        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
+        Converters =
+        {
+            new JsonStringEnumConverter(JsonNamingPolicy.CamelCase)
+        }
     };
-
-    public static async Task<T?> ReadJsonAsync<T>(this HttpListenerRequest req, CancellationToken ct)
-    {
-        using var sr = new StreamReader(req.InputStream, req.ContentEncoding);
-        var body = await sr.ReadToEndAsync(ct);
-        return string.IsNullOrWhiteSpace(body) 
-            ? default 
-            : JsonSerializer.Deserialize<T>(body, JsonOpts);
-    }
     
     public static async Task<object?> BindAsync(this HttpListenerRequest req, Type modelType, CancellationToken token =  default)
     {
@@ -40,7 +34,6 @@ public static class ApiHelpers
 
         if (obj == null)
         {
-            res.Close();
             return;
         }
         
@@ -48,17 +41,6 @@ public static class ApiHelpers
         var buf = Encoding.UTF8.GetBytes(json);
         
         await res.OutputStream.WriteAsync(buf, ct ?? CancellationToken.None);
-        res.Close();
-    }
-
-    public static async Task WriteErrorAsync(this HttpListenerResponse res, int status, string message, CancellationToken ct)
-    {
-        await WriteJsonAsync(res, 
-            new
-            {
-                error = message
-            }, 
-            status, ct);
     }
 
     public static User? GetUser(this HttpListenerRequest req)
@@ -68,10 +50,5 @@ public static class ApiHelpers
         var token = auth["Bearer ".Length..].Trim();
         var (ok, user) = JwtWorker.ValidateJwtToken(token);
         return ok ? user : null;
-    }
-
-    public static string? GetCookie(this HttpListenerRequest req, string name)
-    {
-        return req.Cookies[name]?.Value;
     }
 }

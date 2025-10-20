@@ -19,6 +19,13 @@ public class HttpServer
 
     public async Task StartAsync(CancellationTokenSource cts)
     {
+        
+        Console.CancelKeyPress += (_, e) =>
+        {
+            e.Cancel = true;
+            cts.Cancel();
+        };
+        
         _listener.Start();
         Console.WriteLine($"Server started at {string.Join(", ", _listener.Prefixes)}");
 
