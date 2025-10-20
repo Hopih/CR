@@ -23,53 +23,68 @@ public sealed class ExecutionMiddleware(IServiceProvider sp) : BaseMiddleware
         var controller = sp.GetService(entry.ControllerType)
                          ?? sp.GetRequiredService(entry.ControllerType);
 
+        if (controller is BaseController bc)
+            bc.HttpContext = ctx;
+        
         var args = new List<object?>();
 
         foreach (var p in entry.Action.GetParameters())
         {
-            if (p.ParameterType == typeof(HttpContextEx))
-                args.Add(ctx);
-
-            else if (p.ParameterType == typeof(CancellationToken))
-                args.Add(ct);
-
-            else if (entry.ModelParam != null && p == entry.ModelParam)
+            if (entry.ModelParam != null && p == entry.ModelParam)
+            {
                 args.Add(ctx.BoundModel);
-
+            }
             else if (ctx.RouteValues?.TryGetValue(p.Name!, out var raw) == true)
+            {
                 args.Add(ConvertSimple(raw, p.ParameterType));
-
+            }
             else
+            {
                 args.Add(Type.Missing);
+            }
         }
 
         var result = entry.Action.Invoke(controller, args.ToArray());
 
-        if (result is Task task)
+        if (result is Task<IActionResult> taskActionResult)
+        {
+            var actionResult = await taskActionResult.ConfigureAwait(false);
+            
+            await actionResult.ExecuteAsync(ctx, ct);
+        }
+        else if (result is IActionResult actionResult)
+        {
+            await actionResult.ExecuteAsync(ctx, ct);
+        }
+        else if (result is Task task)
         {
             await task.ConfigureAwait(false);
+
+            // поддержка Task<T>, не IActionResult
             var type = task.GetType();
-            if (typeof(Task).IsAssignableFrom(type) && type.IsGenericType)
+            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Task<>))
             {
                 var val = type.GetProperty("Result")?.GetValue(task);
                 if (val is not null)
-                {
                     await ctx.Response.WriteJsonAsync(val, ct: ct);
-                }
             }
         }
         else if (result is not null)
         {
             await ctx.Response.WriteJsonAsync(result, ct: ct);
         }
-        else if (result is null && ctx.Response is { StatusCode: >= 400, OutputStream.CanWrite: true })
+        else if (ctx.Response is { StatusCode: >= 400, OutputStream.CanWrite: true })
         {
             // если контроллер выставил ошибку, но не вернул тело
             await ctx.Response.WriteJsonAsync(new
             {
                 error = "RequestFailed",
                 code = ctx.Response.StatusCode
-            });
+            }, ct: ct);
+        }
+        else
+        {
+            ctx.Response.StatusCode = 204;
         }
     }
 

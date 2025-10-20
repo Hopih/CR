@@ -7,57 +7,57 @@ using SimpleHttpListenerServer.Models;
 
 namespace SimpleHttpListenerServer.Controllers;
 
-public sealed class UsersController(UsersRepository users)
+public sealed class UsersController(UsersRepository users) : BaseController
 {
     [HttpPost("/api/user/signup")]
     [Authorize(AllowAnonymous = true)]
-    public async Task<object> Signup(SignupRequest dto, HttpContextEx ctx)
+    public async Task<IActionResult> Signup(SignupRequest dto)
     {
         try
         {
-            var userId = await users.CreateUserAsync(dto.Login, dto.Password, ctx.RequestAborted);
+            var userId = await users.CreateUserAsync(dto.Login, dto.Password, HttpContext.RequestAborted);
             if (userId is null)
             {
-                return new
-                {
-                    error = "signup_failed"
-                };
+                return Json(
+                    new
+                    {
+                        error = "signup_failed"
+                    });
             }
-
-            ctx.Response.StatusCode = 201;
-            return new
-            {
-                id = userId
-            };
-
+            
+            return Created(
+                new 
+                { 
+                    id = userId 
+                });
         }
         catch (PostgresException pg) when (pg.SqlState == "23505")
         {
-            ctx.Response.StatusCode = 409;
-            return new
-            {
-                error = "login_already_exists"
-            };
+            return Conflict("login_already_exists");
         }
     }
 
     [HttpPost("/api/user/login")]
     [Authorize(AllowAnonymous = true)]
-    public async Task<object> Login(LoginRequest dto, HttpContextEx ctx)
+    public async Task<IActionResult> Login(LoginRequest dto)
     {
-        var row = await users.GetByLoginAsync(dto.Login, ctx.RequestAborted);
+        var row = await users.GetByLoginAsync(dto.Login, HttpContext.RequestAborted);
         if (row is null || !MyPasswordHasher.Validate($"{row.Hash};{row.Salt}", dto.Password))
         {
-            return new { error = "invalid_credentials" };
+            return Unauthorized(new { error = "invalid_credentials" });
         }
 
-        var token = JwtWorker.GenerateJwtToken(new User { Id = row.Id, Role = row.Role });
+        var token = JwtWorker.GenerateJwtToken(new User
+        {
+            Id = row.Id, 
+            Role = row.Role
+        });
         
-        return new LoginResponse
+        return Ok(new LoginResponse
         {
             Token = token, 
             UserId = row.Id, 
             Role = row.Role
-        };
+        });
     }
 }

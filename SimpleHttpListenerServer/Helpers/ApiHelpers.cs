@@ -33,12 +33,20 @@ public static class ApiHelpers
             : JsonSerializer.Deserialize(json, modelType, JsonOpts);
     }
 
-    public static async Task WriteJsonAsync(this HttpListenerResponse res, object obj, int status = 200, CancellationToken? ct = null)
+    public static async Task WriteJsonAsync(this HttpListenerResponse res, object? obj, int status = 200, CancellationToken? ct = null)
     {
-        var json = JsonSerializer.Serialize(obj, JsonOpts);
-        var buf = Encoding.UTF8.GetBytes(json);
         res.StatusCode = status;
         res.ContentType = "application/json; charset=utf-8";
+
+        if (obj == null)
+        {
+            res.Close();
+            return;
+        }
+        
+        var json = JsonSerializer.Serialize(obj, JsonOpts);
+        var buf = Encoding.UTF8.GetBytes(json);
+        
         await res.OutputStream.WriteAsync(buf, ct ?? CancellationToken.None);
         res.Close();
     }

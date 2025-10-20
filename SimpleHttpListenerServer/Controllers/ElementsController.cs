@@ -6,20 +6,20 @@ using SimpleHttpListenerServer.Models;
 namespace SimpleHttpListenerServer.Controllers;
 
 [Authorize(AllowAnonymous = true, Required = AuthTokenKind.Guest | AuthTokenKind.Jwt)]
-public sealed class ElementsController(ElementsRepository elements, BoardsRepository boards)
+public sealed class ElementsController(ElementsRepository elements, BoardsRepository boards) : BaseController
 {
     [HttpGet("/api/boards/{boardId}/elements")]
-    public async Task<object> GetBoardElements(Guid boardId, HttpContextEx ctx)
+    public async Task<IActionResult> GetBoardElements(Guid boardId)
     {
-        var guestKey = ctx.Request.Cookies?["guest_board_key"]?.Value ?? ctx.Request.Headers["X-Guest-Key"];
-        if (!await CanAccessBoard(boardId, ctx.AuthUser, guestKey, ctx.RequestAborted))
+        var guestKey = HttpContext.Request.Cookies?["guest_board_key"]?.Value ?? HttpContext.Request.Headers["X-Guest-Key"];
+        if (!await CanAccessBoard(boardId, HttpContext.AuthUser, guestKey, HttpContext.RequestAborted))
         {
-            ctx.Response.StatusCode = 403;
-            return new { error = "forbidden" };
+            return Forbid();
         }
 
-        var rows = await elements.GetElementsWithStickersAsync(boardId, ctx.RequestAborted);
-        return rows.Select(r => new ElementDto
+        var rows = await elements.GetElementsWithStickersAsync(boardId, HttpContext.RequestAborted);
+
+        var response = rows.Select(r => new ElementDto
         {
             Id = r.Id,
             Type = r.Type,
@@ -33,29 +33,30 @@ public sealed class ElementsController(ElementsRepository elements, BoardsReposi
             Color = r.Color,
             FontSize = r.FontSize
         }).ToList();
+        
+        return Ok(response);
     }
 
     [HttpPost("/api/boards/{boardId}/elements/bulk")]
-    public async Task<object> UpsertBoardElements(Guid boardId, BulkElementsRequest dto, HttpContextEx ctx)
+    public async Task<IActionResult> UpsertBoardElements(Guid boardId, BulkElementsRequest dto)
     {
-        var guestKey = ctx.Request.Cookies?["guest_board_key"]?.Value ?? ctx.Request.Headers["X-Guest-Key"];
-        if (!await CanAccessBoard(boardId, ctx.AuthUser, guestKey, ctx.RequestAborted))
+        var guestKey = HttpContext.Request.Cookies["guest_board_key"]?.Value ?? HttpContext.Request.Headers["X-Guest-Key"];
+        
+        if (!await CanAccessBoard(boardId, HttpContext.AuthUser, guestKey, HttpContext.RequestAborted))
         {
-            ctx.Response.StatusCode = 403;
-            return new { error = "forbidden" };
+            return Forbid();
         }
 
         if (dto.Elements.Count == 0)
         {
-            ctx.Response.StatusCode = 400;
-            return new { error = "no_elements" };
+            return BadRequest(message:"no_elements");
         }
 
         var items = dto.Elements.Select(e => new BoardElement
         {
             Id = e.Id == Guid.Empty ? Guid.NewGuid() : e.Id,
             BoardId = boardId,
-            UserId = ctx.AuthUser?.Id,
+            UserId = HttpContext.AuthUser?.Id,
             Type = e.Type,
             X = e.X,
             Y = e.Y,
@@ -68,9 +69,12 @@ public sealed class ElementsController(ElementsRepository elements, BoardsReposi
             FontSize = e.FontSize
         }).ToList();
 
-        await elements.SyncBoardElementsAsync(boardId, ctx.AuthUser?.Id, items, ctx.RequestAborted);
+        await elements.SyncBoardElementsAsync(boardId, HttpContext.AuthUser?.Id, items, HttpContext.RequestAborted);
 
-        return new { updated = items.Count };
+        return Ok(new
+        {
+            updated = items.Count
+        });
     }
     
     

@@ -5,28 +5,26 @@ using SimpleHttpListenerServer.Models;
 namespace SimpleHttpListenerServer.Controllers;
 
 [Authorize(AllowAnonymous = true)]
-public sealed class GuestBoardsController(BoardsRepository boards)
+public sealed class GuestBoardsController(BoardsRepository boards) : BaseController
 {
     [HttpPost("/api/guest/board")]
-    public async Task<object> CreateGuestBoard(CreateBoardRequest dto, HttpContextEx ctx)
+    public async Task<IActionResult> CreateGuestBoard(CreateBoardRequest dto) 
     {
         
         var title = string.IsNullOrWhiteSpace(dto.Title)
             ? "Guest board"
             : dto.Title.Trim();
         
-        var (boardId, tempKey, expires) = await boards.CreateGuestBoardAsync(title, TimeSpan.FromDays(3), ctx.RequestAborted);
+        var (boardId, tempKey, expires) = await boards.CreateGuestBoardAsync(title, TimeSpan.FromDays(3), HttpContext.RequestAborted);
 
-        ctx.Response.AddHeader("Set-Cookie",
+        HttpContext.Response.AddHeader("Set-Cookie",
             $"guest_board_key={tempKey}; Path=/; Max-Age={3 * 24 * 3600}; HttpOnly; SameSite=None; Secure");
-
-        ctx.Response.StatusCode = 201;
-        ctx.Response.ContentType = "application/json; charset=utf-8";
-        return new CreateGuestBoardResponse
+        
+        return Created(new
         {
-            BoardId = boardId,
-            TempKey = tempKey,
-            ExpiresAt = expires
-        };
+            boardId,
+            tempKey,
+            expiresAt = expires
+        });
     }
 }

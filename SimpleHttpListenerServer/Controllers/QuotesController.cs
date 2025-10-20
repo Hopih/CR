@@ -3,12 +3,12 @@ using SimpleHttpListenerServer.Core;
 namespace SimpleHttpListenerServer.Controllers;
 
 [Authorize(AllowAnonymous = true)]
-public sealed class QuotesController(QuotesApiClient quotes)
+public sealed class QuotesController(QuotesApiClient quotes) : BaseController
 {
     [HttpGet("/api/quotes/random")]
-    public async Task<object> GetRandomQuotes(HttpContextEx ctx)
+    public async Task<IActionResult> GetRandomQuotes()
     {
-        var quote = await quotes.GetRandomQuoteAsync(ctx.RequestAborted);
-        return quote;
+        var quote = await quotes.GetRandomQuoteAsync(HttpContext.RequestAborted);
+        return Ok(quote);
     }
 }

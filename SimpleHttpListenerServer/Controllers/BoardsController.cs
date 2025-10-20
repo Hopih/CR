@@ -5,22 +5,29 @@ using SimpleHttpListenerServer.Models;
 namespace SimpleHttpListenerServer.Controllers;
 
 [Authorize(Required = AuthTokenKind.Jwt)]
-public sealed class BoardsController(BoardsRepository boards)
+public sealed class BoardsController(BoardsRepository boards) : BaseController
 {
     [HttpGet("/api/boards")]
-    public async Task<object> GetUserBoards(HttpContextEx ctx)
+    public async Task<IActionResult> GetUserBoards()
     {
-        var user = ctx.AuthUser!;
-        var boards1 = await boards.GetUserBoardsAsync(user.Id, ctx.RequestAborted);
-        return boards1.Select(b => new { b.Id, b.Title }).ToList();
+        var user = HttpContext.AuthUser!;
+        var boardsResult = await boards.GetUserBoardsAsync(user.Id, HttpContext.RequestAborted);
+        
+        return Ok(
+            boardsResult.Select(b => 
+                new
+                {
+                    b.Id, b.Title
+                }).ToList()
+            );
     }
 
     [HttpPost("/api/boards")]
-    public async Task<object> CreateUserBoard(CreateBoardRequest dto, HttpContextEx ctx)
+    public async Task<IActionResult> CreateUserBoard(CreateBoardRequest dto)
     {
-        var user = ctx.AuthUser!;
-        var id = await boards.CreateUserBoardAsync(user.Id, dto.Title, ctx.RequestAborted);
-        ctx.Response.StatusCode = 201;
-        return new { id };
+        var user = HttpContext.AuthUser!;
+        var id = await boards.CreateUserBoardAsync(user.Id, dto.Title, HttpContext.RequestAborted);
+
+        return Created(new { id });
     }
 }
