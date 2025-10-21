@@ -5,5 +5,6 @@ public enum ElementType
     Sticker,
     Text, 
     Image, 
-    Table
+    Table,
+    Arrow
 }

@@ -3,7 +3,7 @@ using SimpleHttpListenerServer.Entities;
 
 namespace SimpleHttpListenerServer.Database;
 
-public sealed class BoardsRepository
+public sealed class BoardsRepository : IBoardsRepository
 {
 
     NpgsqlDataSource _dataSource;

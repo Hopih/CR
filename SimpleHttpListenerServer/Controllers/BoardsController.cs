@@ -5,7 +5,7 @@ using SimpleHttpListenerServer.Models;
 namespace SimpleHttpListenerServer.Controllers;
 
 [Authorize(Required = AuthTokenKind.Jwt)]
-public sealed class BoardsController(BoardsRepository boards) : BaseController
+public sealed class BoardsController(IBoardsRepository boards) : BaseController
 {
     [HttpGet("/api/boards")]
     public async Task<IActionResult> GetUserBoards()

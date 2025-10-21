@@ -6,7 +6,7 @@ using SimpleHttpListenerServer.Models;
 namespace SimpleHttpListenerServer.Controllers;
 
 [Authorize(AllowAnonymous = true, Required = AuthTokenKind.Guest | AuthTokenKind.Jwt)]
-public sealed class ElementsController(ElementsRepository elements, BoardsRepository boards) : BaseController
+public sealed class ElementsController(ElementsRepository elements, IBoardsRepository boards) : BaseController
 {
     [HttpGet("/api/boards/{boardId}/elements")]
     public async Task<IActionResult> GetBoardElements(Guid boardId)

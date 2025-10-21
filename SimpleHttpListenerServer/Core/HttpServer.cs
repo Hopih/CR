@@ -19,7 +19,6 @@ public class HttpServer
 
     public async Task StartAsync(CancellationTokenSource cts)
     {
-        
         Console.CancelKeyPress += (_, e) =>
         {
             e.Cancel = true;

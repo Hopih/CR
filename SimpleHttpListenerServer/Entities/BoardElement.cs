@@ -17,4 +17,9 @@ public sealed class BoardElement
     public string? Text { get; init; }
     public string? Color { get; init; }
     public int? FontSize { get; init; }
+    
+    // только для стрелок
+    public Guid? FromId { get; set; }  // Sticker A
+    public Guid? ToId { get; set; }    // Sticker B
+    public double? Bend { get; set; }  // смещение изгиба
 }
