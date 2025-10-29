@@ -5,6 +5,7 @@ namespace SimpleHttpListenerServer.Core;
 public enum ServiceLifetime
 {
     Singleton,
+    Scoped,
     Transient
 }
 
@@ -14,10 +15,10 @@ public enum ServiceLifetime
 public sealed class ServiceDescriptor
 {
     public Type ServiceType { get; init; } = default!;
-    public Type? ImplementationType { get; init; }
-    public object? ImplementationInstance { get; init; }
-    public ServiceLifetime Lifetime { get; init; }
-    public Func<IServiceProvider, object>? ImplementationFactory { get; init; }
+    public Type? ImplementationType { get; init; } 
+    public object? ImplementationInstance { get; init; } 
+    public ServiceLifetime Lifetime { get; init; } 
+    public Func<IServiceProvider, object>? ImplementationFactory { get; init; }  
 }
 
 /// <summary>
@@ -35,6 +36,18 @@ public sealed class ServiceCollection
             ServiceType = typeof(TService),
             ImplementationType = typeof(TImpl),
             Lifetime = ServiceLifetime.Singleton
+        });
+        return this;
+    }
+    
+    public ServiceCollection AddScoped<TService, TImpl>()
+        where TImpl : class, TService
+    {
+        _descriptors.Add(new()
+        {
+            ServiceType = typeof(TService),
+            ImplementationType = typeof(TImpl),
+            Lifetime = ServiceLifetime.Scoped
         });
         return this;
     }
@@ -81,8 +94,20 @@ public sealed class ServiceCollection
         _descriptors.Add(new()
         {
             ServiceType = typeof(TService),
-            ImplementationFactory = sp => factory(sp),
+            ImplementationFactory = factory,
             Lifetime = ServiceLifetime.Transient
+        });
+        return this;
+    }
+    
+    public ServiceCollection AddScoped<TService>(Func<IServiceProvider, TService> factory)
+        where TService : class
+    {
+        _descriptors.Add(new()
+        {
+            ServiceType = typeof(TService),
+            ImplementationFactory = factory,
+            Lifetime = ServiceLifetime.Scoped
         });
         return this;
     }
@@ -143,14 +168,77 @@ public sealed class ServiceCollection
         });
         return this;
     }
+    
+    private void ValidateDependencies()
+    {
+        foreach (var descriptor in _descriptors)
+        {
+            if (descriptor.ImplementationType is null)
+                continue;
 
-    public ServiceProvider BuildServiceProvider() => new ServiceProvider(_descriptors);
+            ValidateDescriptor(descriptor, new Stack<Type>(), descriptor.Lifetime);
+        }
+    }
+    
+    private void ValidateDescriptor(ServiceDescriptor descriptor, Stack<Type> stack, ServiceLifetime rootLifetime)
+    {
+        if (descriptor.ImplementationType is null)
+            return;
+
+        if (stack.Contains(descriptor.ImplementationType))
+            return; // избегаем рекурсии по циклам
+
+        stack.Push(descriptor.ImplementationType);
+
+        var ctor = descriptor.ImplementationType
+            .GetConstructors()
+            .OrderByDescending(c => c.GetParameters().Length)
+            .FirstOrDefault();
+
+        if (ctor == null)
+        {
+            stack.Pop();
+            return;
+        }
+
+        foreach (var param in ctor.GetParameters())
+        {
+            var dependency = _descriptors
+                .LastOrDefault(d => d.ServiceType == param.ParameterType);
+
+            if (dependency == null)
+                continue; // не зарегистрирован — пропускаем
+            
+            if (rootLifetime == ServiceLifetime.Singleton &&
+                dependency.Lifetime == ServiceLifetime.Scoped)
+            {
+                throw new InvalidOperationException(
+                    $"Invalid lifetime chain: root Singleton ({descriptor.ImplementationType?.Name}) " +
+                    $"depends (directly or indirectly) on Scoped " +
+                    $"({dependency.ImplementationType?.Name ?? dependency.ServiceType.Name}).");
+            }
+
+            // рекурсивная проверка зависимостей потомка
+            ValidateDescriptor(dependency, stack, rootLifetime);
+        }
+
+        stack.Pop();
+    }
+    
+
+    public ServiceProvider BuildServiceProvider(bool validateScopes = true)
+    {
+        if (validateScopes)
+            ValidateDependencies();
+        
+        return new ServiceProvider(_descriptors);
+    }
 }
 
 /// <summary>
 /// Простой IoC-контейнер.
 /// </summary>
-public sealed class ServiceProvider : IServiceProvider, IDisposable
+public sealed class ServiceProvider : IServiceProvider, IServiceScopeFactory, IDisposable
 {
     private readonly Dictionary<Type, object> _singletons = new();
     private readonly Dictionary<Type, bool> _creationStack = new();
@@ -160,9 +248,11 @@ public sealed class ServiceProvider : IServiceProvider, IDisposable
     public ServiceProvider(List<ServiceDescriptor> descriptors)
     {
         _descriptors = descriptors;
+        _singletons[typeof(IServiceProvider)] = this;
+        _singletons[typeof(IServiceScopeFactory)] = this;
     }
 
-    public object? GetService(Type serviceType)
+    public object? GetService(Type serviceType) //ICalculator, ILogger
     {
         if (serviceType == typeof(IServiceProvider))
             return this;
@@ -181,9 +271,13 @@ public sealed class ServiceProvider : IServiceProvider, IDisposable
         if (descriptor.Lifetime == ServiceLifetime.Singleton &&
             _singletons.TryGetValue(serviceType, out var existing))
             return existing;
+        
+        // --- scoped запрещён в корневом провайдере ---
+        if (descriptor.Lifetime == ServiceLifetime.Scoped)
+            throw new InvalidOperationException($"Cannot resolve scoped service {serviceType} from root provider. Use CreateScope().");
 
         // --- создаем объект ---
-        var instance = CreateInstance(descriptor);
+        var instance = CreateInstance(descriptor, this);
 
         if (descriptor.Lifetime == ServiceLifetime.Singleton)
             _singletons[serviceType] = instance!;
@@ -191,7 +285,7 @@ public sealed class ServiceProvider : IServiceProvider, IDisposable
         return instance;
     }
 
-    private object? CreateInstance(ServiceDescriptor descriptor)
+    private object CreateInstance(ServiceDescriptor descriptor, IServiceProvider provider)
     {
         // 1️⃣ Фабрика
         if (descriptor.ImplementationFactory is not null)
@@ -208,18 +302,16 @@ public sealed class ServiceProvider : IServiceProvider, IDisposable
         {
             var ctor = implType
                 .GetConstructors()
-                .OrderByDescending(c => c.GetParameters().Length)
-                .FirstOrDefault();
+                .OrderByDescending(c => c.GetParameters().Length) 
+                .FirstOrDefault() 
+                       ?? throw new InvalidOperationException($"No public constructors found for {implType}"); 
 
-            if (ctor is null)
-                throw new InvalidOperationException($"No public constructors found for {implType}");
-
-            var args = ctor.GetParameters()
+            var args = ctor.GetParameters() 
                 .Select(p => GetService(p.ParameterType)
                              ?? throw new InvalidOperationException($"Cannot resolve dependency: {p.ParameterType.Name}"))
                 .ToArray();
 
-            return Activator.CreateInstance(implType, args);
+            return Activator.CreateInstance(implType, args)!;
         }
         finally
         {
@@ -248,5 +340,113 @@ public sealed class ServiceProvider : IServiceProvider, IDisposable
     {
         return GetService(type)
                ?? throw new InvalidOperationException($"Service {type} not registered and cannot be constructed.");
+    }
+
+    public IServiceScope CreateScope()
+    {
+        return new ServiceScope(_descriptors, _singletons);
+    }
+}
+
+/// <summary>
+/// Область (scope) — создаётся из ServiceProvider и хранит scoped-экземпляры.
+/// </summary>
+public sealed class ServiceScope : IServiceScope, IServiceProvider
+{
+    private readonly Dictionary<Type, object> _scopedInstances = new();
+    private readonly Dictionary<Type, bool> _creationStack = new();
+    private readonly List<ServiceDescriptor> _descriptors;
+    private readonly Dictionary<Type, object> _rootSingletons;
+    private bool _disposed;
+
+    public IServiceProvider ServiceProvider => this;
+
+    public ServiceScope(List<ServiceDescriptor> descriptors, Dictionary<Type, object> singletons)
+    {
+        _descriptors = descriptors;
+        _rootSingletons = singletons;
+    }
+
+    public object? GetService(Type serviceType)
+    {
+        if (serviceType == typeof(IServiceProvider))
+            return this;
+
+        var descriptor = _descriptors.LastOrDefault(x => x.ServiceType == serviceType)
+                         ?? _descriptors.LastOrDefault(x => x.ImplementationType == serviceType);
+
+        if (descriptor is null)
+            return null;
+
+        // --- singleton ---
+        if (descriptor.Lifetime == ServiceLifetime.Singleton &&
+            _rootSingletons.TryGetValue(serviceType, out var singleton))
+            return singleton;
+
+        // --- scoped cache ---
+        if (descriptor.Lifetime == ServiceLifetime.Scoped &&
+            _scopedInstances.TryGetValue(serviceType, out var scoped))
+            return scoped;
+
+        // --- создаем ---
+        var instance = CreateInstance(descriptor);
+
+        switch (descriptor.Lifetime)
+        {
+            case ServiceLifetime.Singleton:
+                _rootSingletons[serviceType] = instance!;
+                break;
+            case ServiceLifetime.Scoped:
+                _scopedInstances[serviceType] = instance!;
+                break;
+        }
+
+        return instance;
+    }
+
+    private object CreateInstance(ServiceDescriptor descriptor)
+    {
+        if (descriptor.ImplementationFactory is not null)
+            return descriptor.ImplementationFactory(this);
+
+        var implType = descriptor.ImplementationType ?? descriptor.ServiceType;
+
+        if (!_creationStack.TryAdd(implType, true))
+            throw new InvalidOperationException($"Circular dependency detected: {implType}");
+
+        try
+        {
+            var ctor = implType
+                           .GetConstructors()
+                           .OrderByDescending(c => c.GetParameters().Length)
+                           .FirstOrDefault()
+                       ?? throw new InvalidOperationException($"No public constructors found for {implType}");
+
+            var args = ctor.GetParameters()
+                .Select(p => GetService(p.ParameterType)
+                             ?? throw new InvalidOperationException(
+                                 $"Cannot resolve dependency: {p.ParameterType.Name}"))
+                .ToArray();
+
+            return Activator.CreateInstance(implType, args)!;
+        }
+        finally
+        {
+            _creationStack.Remove(implType);
+        }
+    }
+    
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+
+        foreach (var scoped in _scopedInstances.Values)
+        {
+            if (scoped is IDisposable disp)
+                disp.Dispose();
+        }
+
+        _scopedInstances.Clear();
     }
 }
