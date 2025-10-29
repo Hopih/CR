@@ -9,8 +9,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OpenApiHttpClientExample", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CacheExample", "CacheExample\CacheExample.csproj", "{98F18BE4-6059-4C63-8D97-26EDD28E066C}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FactoryMethodExample", "FactoryMethodExample\FactoryMethodExample.csproj", "{B1051E4E-72E3-4B3E-9303-8BF043C28935}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TcpClientExample", "TcpClientExample\TcpClientExample.csproj", "{10B68351-A1F4-4CAA-933D-49D54C43C853}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IOExample", "IOExample\IOExample.csproj", "{33E720B5-1F19-42D3-8998-ECD3BBF70218}"
@@ -31,6 +29,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleHttpListenerServer", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HttpListenerTemplateGenerator", "HttpListenerTemplateGenerator\HttpListenerTemplateGenerator.csproj", "{695161D4-8883-427A-BD52-CE62B3AE70C6}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WordGuesserClient", "WordGuesserClient\WordGuesserClient.csproj", "{09C2ABA8-ADDB-4543-BE30-1B496EF8D12F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WordGuesserServer", "WordGuesserServer\WordGuesserServer.csproj", "{1801202B-7384-47F7-A14D-A263EC9920F2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -49,10 +51,6 @@ Global
 		{98F18BE4-6059-4C63-8D97-26EDD28E066C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{98F18BE4-6059-4C63-8D97-26EDD28E066C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{98F18BE4-6059-4C63-8D97-26EDD28E066C}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B1051E4E-72E3-4B3E-9303-8BF043C28935}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B1051E4E-72E3-4B3E-9303-8BF043C28935}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B1051E4E-72E3-4B3E-9303-8BF043C28935}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B1051E4E-72E3-4B3E-9303-8BF043C28935}.Release|Any CPU.Build.0 = Release|Any CPU
 		{10B68351-A1F4-4CAA-933D-49D54C43C853}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{10B68351-A1F4-4CAA-933D-49D54C43C853}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{10B68351-A1F4-4CAA-933D-49D54C43C853}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -93,6 +91,14 @@ Global
 		{695161D4-8883-427A-BD52-CE62B3AE70C6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{695161D4-8883-427A-BD52-CE62B3AE70C6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{695161D4-8883-427A-BD52-CE62B3AE70C6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{09C2ABA8-ADDB-4543-BE30-1B496EF8D12F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{09C2ABA8-ADDB-4543-BE30-1B496EF8D12F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{09C2ABA8-ADDB-4543-BE30-1B496EF8D12F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{09C2ABA8-ADDB-4543-BE30-1B496EF8D12F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1801202B-7384-47F7-A14D-A263EC9920F2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1801202B-7384-47F7-A14D-A263EC9920F2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1801202B-7384-47F7-A14D-A263EC9920F2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1801202B-7384-47F7-A14D-A263EC9920F2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
