@@ -436,6 +436,9 @@ public sealed class ServiceScope : IServiceScope, IServiceProvider
         }
     }
     
+    public T GetRequiredService<T>()
+        => (T)(GetService(typeof(T)) ?? throw new InvalidOperationException($"Service {typeof(T)} not registered"));
+    
     public void Dispose()
     {
         if (_disposed) return;

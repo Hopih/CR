@@ -1,33 +1,47 @@
+using Microsoft.Extensions.DependencyInjection;
+
 namespace SimpleHttpListenerServer.Core;
 
 public sealed class MiddlewarePipeline
 {
-    private readonly List<Func<HttpContextEx, Func<Task>, Task>> _stack = [];
+    private readonly List<Func<IServiceProvider, IMiddleware>> _middlewareFactories = new();
 
     public MiddlewarePipeline Use(Func<HttpContextEx, Func<Task>, Task> inline)
     {
-        _stack.Add(inline); 
+        _middlewareFactories.Add(_ => new DelegateMiddleware(inline));
         return this;
     }
-    public MiddlewarePipeline Use<T>(ServiceProvider sp)
-        where T : IMiddleware
+    
+    public MiddlewarePipeline Use<TMiddleware>() where TMiddleware : IMiddleware
     {
-        var m = (IMiddleware)sp.GetRequiredService(typeof(T));
-        return Use(m.InvokeAsync);
+        _middlewareFactories.Add(sp => sp.GetRequiredService<TMiddleware>());
+        return this;
     }
 
-    public async Task ExecuteAsync(HttpContextEx ctx)
+    public async Task ExecuteAsync(HttpContextEx ctx, IServiceProvider sp)
     {
-        var i = -1;
-        await Next();
-        return;
+        // создаём экземпляры из текущего scope
+        var middlewares = _middlewareFactories.Select(f => f(sp)).ToArray();
 
-        Task Next()
+        // формируем цепочку вызовов
+        var next = () => Task.CompletedTask;
+
+        for (var i = middlewares.Length - 1; i >= 0; i--)
         {
-            i++; 
-            return i < _stack.Count 
-                ? _stack[i](ctx, Next) 
-                : Task.CompletedTask;
+            var current = middlewares[i];
+            var nextCopy = next;
+            next = () => current.InvokeAsync(ctx, nextCopy);
         }
+
+        await next();
+    }
+}
+
+/// Вспомогательный middleware для делегатов
+internal sealed class DelegateMiddleware(Func<HttpContextEx, Func<Task>, Task> handler) : BaseMiddleware
+{
+    protected override async Task InvokeCoreAsync(HttpContextEx ctx, Func<Task> next, CancellationToken ct)
+    {
+        await handler(ctx, next);
     }
 }

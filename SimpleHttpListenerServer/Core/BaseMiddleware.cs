@@ -1,3 +1,5 @@
+using Microsoft.Extensions.DependencyInjection;
+
 namespace SimpleHttpListenerServer.Core;
 
 public abstract class BaseMiddleware : IMiddleware

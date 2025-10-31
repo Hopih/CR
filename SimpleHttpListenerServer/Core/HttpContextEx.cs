@@ -5,10 +5,10 @@ namespace SimpleHttpListenerServer.Core;
 
 public sealed class HttpContextEx
 {
-    public HttpContextEx(HttpListenerContext raw, IServiceProvider sp , CancellationTokenSource token)
+    public HttpContextEx(HttpListenerContext raw, CancellationTokenSource token)
     {
         Raw = raw;
-        Services = sp;
+
         Raw.Response.OutputStream
             .BeginWrite([], 0, 0, _ =>
             {
@@ -20,7 +20,6 @@ public sealed class HttpContextEx
     }
 
     public HttpListenerContext Raw { get; }
-    public IServiceProvider Services { get; }
 
     public HttpListenerRequest Request => Raw.Request;
     public HttpListenerResponse Response => Raw.Response;

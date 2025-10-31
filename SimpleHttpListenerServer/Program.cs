@@ -55,12 +55,12 @@ var sp = services.BuildServiceProvider();
 sp.UseControllers();
 
 var pipeline = new MiddlewarePipeline()
-    .Use<ErrorHandlingMiddleware>(sp)
-    .Use<AuthMiddleware>(sp)
-    .Use<ValidationMiddleware>(sp)
-    .Use<RoutingMiddleware>(sp)
-    .Use<ExecutionMiddleware>(sp)
-    .Use<StaticFileMiddleware>(sp);
+    .Use<ErrorHandlingMiddleware>()
+    .Use<AuthMiddleware>()
+    .Use<ValidationMiddleware>()
+    .Use<RoutingMiddleware>()
+    .Use<ExecutionMiddleware>()
+    .Use<StaticFileMiddleware>();
     
     
 var server = new HttpServer(configuration["Host"]!, pipeline, sp, maxConcurrentRequests);

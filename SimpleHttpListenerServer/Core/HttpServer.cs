@@ -1,4 +1,5 @@
 using System.Net;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace SimpleHttpListenerServer.Core;
 
@@ -30,7 +31,7 @@ public class HttpServer
 
         while (_listener.IsListening && !cts.Token.IsCancellationRequested)
         {
-            var ctx = await _listener.GetContextAsync();
+            var context = await _listener.GetContextAsync();
             try
             {
                 _ = Task.Run(async () =>
@@ -38,13 +39,15 @@ public class HttpServer
                     await _semaphore.WaitAsync(cts.Token);
                     try
                     {
-                        await _middlewarePipeline.ExecuteAsync(new HttpContextEx(ctx, _services, cts));
+                        using var scope = _services.CreateScope();
+                        await _middlewarePipeline.ExecuteAsync(new HttpContextEx(context, cts),
+                            scope.ServiceProvider);
                     }
                     finally
                     {
                         _semaphore.Release();
-                        ctx.Response.OutputStream.Close();
-                        ctx.Response.Close();
+                        context.Response.OutputStream.Close();
+                        context.Response.Close();
                     }
                 }, cts.Token);
             }
