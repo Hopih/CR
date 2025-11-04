@@ -11,8 +11,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CacheExample", "CacheExampl
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TcpClientExample", "TcpClientExample\TcpClientExample.csproj", "{10B68351-A1F4-4CAA-933D-49D54C43C853}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "IOExample", "IOExample\IOExample.csproj", "{33E720B5-1F19-42D3-8998-ECD3BBF70218}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TcpServerExample", "TcpServerExample\TcpServerExample.csproj", "{79758BBE-97DB-491D-B8CC-5AA5700A48EC}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HttpListenerExample", "HttpListenerExample\HttpListenerExample.csproj", "{4E63F85A-C080-4F6E-A127-52F9CA4EBE68}"
@@ -34,6 +32,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WordGuesserServer", "WordGuesserServer\WordGuesserServer.csproj", "{1801202B-7384-47F7-A14D-A263EC9920F2}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WordGuesserTests", "WordGuesserTests\WordGuesserTests.csproj", "{865A0AAD-52B8-43AB-81D2-D87FF9FBB951}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LongPoolingExample", "LongPoolingExample\LongPoolingExample.csproj", "{25985EC8-51DF-4A22-A8A6-A4B1B715AD1B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -57,10 +57,6 @@ Global
 		{10B68351-A1F4-4CAA-933D-49D54C43C853}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{10B68351-A1F4-4CAA-933D-49D54C43C853}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{10B68351-A1F4-4CAA-933D-49D54C43C853}.Release|Any CPU.Build.0 = Release|Any CPU
-		{33E720B5-1F19-42D3-8998-ECD3BBF70218}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{33E720B5-1F19-42D3-8998-ECD3BBF70218}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{33E720B5-1F19-42D3-8998-ECD3BBF70218}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{33E720B5-1F19-42D3-8998-ECD3BBF70218}.Release|Any CPU.Build.0 = Release|Any CPU
 		{79758BBE-97DB-491D-B8CC-5AA5700A48EC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{79758BBE-97DB-491D-B8CC-5AA5700A48EC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{79758BBE-97DB-491D-B8CC-5AA5700A48EC}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -105,6 +101,10 @@ Global
 		{865A0AAD-52B8-43AB-81D2-D87FF9FBB951}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{865A0AAD-52B8-43AB-81D2-D87FF9FBB951}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{865A0AAD-52B8-43AB-81D2-D87FF9FBB951}.Release|Any CPU.Build.0 = Release|Any CPU
+		{25985EC8-51DF-4A22-A8A6-A4B1B715AD1B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{25985EC8-51DF-4A22-A8A6-A4B1B715AD1B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{25985EC8-51DF-4A22-A8A6-A4B1B715AD1B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{25985EC8-51DF-4A22-A8A6-A4B1B715AD1B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

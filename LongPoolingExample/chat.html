@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Многокомнатный чат на Long Polling</title>
+    <style>
+        body { font-family: sans-serif; max-width: 700px; margin: 30px auto; }
+        #chat { border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: auto; }
+        #rooms { margin-bottom: 10px; }
+        input, button { padding: 5px; }
+        .room { margin-right: 8px; cursor: pointer; color: blue; text-decoration: underline; }
+    </style>
+</head>
+<body>
+<h2>💬 Многокомнатный чат</h2>
+<div id="rooms"></div>
+<div id="chat"></div>
+<br>
+<input id="msg" placeholder="Сообщение" style="width:70%">
+<button onclick="send()">Отправить</button>
+
+<script>
+    let room = "default";
+    let username = sessionStorage.getItem("username");
+    if (!username) {
+        username = prompt("Введите имя:") || "Аноним";
+        sessionStorage.setItem("username", username);
+    }
+
+    async function loadRooms() {
+        const res = await fetch("/rooms");
+        const data = await res.json();
+        const div = document.getElementById("rooms");
+        div.innerHTML = "Комнаты: ";
+        data.rooms.forEach(r => {
+            const span = document.createElement("span");
+            span.textContent = r;
+            span.className = "room";
+            span.onclick = () => switchRoom(r);
+            div.appendChild(span);
+        });
+        const newBtn = document.createElement("button");
+        newBtn.textContent = "+ Новая";
+        newBtn.onclick = createRoom;
+        div.appendChild(newBtn);
+    }
+
+    function createRoom() {
+        const name = prompt("Название новой комнаты:");
+        if (name) switchRoom(name);
+    }
+
+    function switchRoom(newRoom) {
+        room = newRoom;
+        document.getElementById("chat").innerHTML = "";
+        addMsg(`🟢 Вы вошли в комнату: ${room}`);
+        poll();
+    }
+
+    async function poll() {
+        try {
+            const res = await fetch(`/poll?room=${encodeURIComponent(room)}`);
+            const data = await res.json();
+            if (data.messages?.length) {
+                for (const m of data.messages) addMsg(m);
+            }
+        } catch (e) {
+            addMsg("⚠️ Ошибка соединения...");
+            await new Promise(r => setTimeout(r, 3000));
+        } finally {
+            poll(); // рекурсивно продолжаем
+        }
+    }
+
+    async function send() {
+        const text = document.getElementById("msg").value.trim();
+        if (!text) return;
+        document.getElementById("msg").value = "";
+        await fetch("/send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ room, user: username, text })
+        });
+    }
+
+    function addMsg(text) {
+        const chat = document.getElementById("chat");
+        const div = document.createElement("div");
+        div.textContent = text;
+        chat.appendChild(div);
+        chat.scrollTop = chat.scrollHeight;
+    }
+
+    loadRooms();
+    switchRoom("default");
+</script>
+</body>
+</html>
