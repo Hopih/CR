@@ -3,7 +3,8 @@
 public enum CommandResponse
 {
     Ok,
-    IncorrectConnection,
+    PlayerNotJoined,
+    IncorrectSender,
     CommandIncorrect,
     PackageIncorrect,
     SessionNotFound

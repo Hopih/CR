@@ -1,0 +1,38 @@
+﻿using System.Collections.Concurrent;
+using System.Net.Sockets;
+using System.Text;
+
+namespace WordGuesserServer;
+
+[Command(Command.Word)]
+public class WordCommandHandler : ICommandHandler
+{
+    public async Task Invoke(Socket sender, ConcurrentDictionary<Guid, GameSession> gameSessions,
+        byte[]? payload = null, CancellationToken ct = default)
+    {
+        var wordPayload = GuessCommandHelper.Decode<string>(Command.Word, payload!)!.Split(':');
+        var sessionCheck = await gameSessions.CheckSessionById(Guid.Parse(wordPayload[0]), sender);
+        
+        if (!sessionCheck.HasSession)
+        {
+            return;
+        }
+        
+        var gameSession = sessionCheck.Session!;
+
+        if (!await gameSession.CheckSessionHost(sender) ||
+            !await gameSession.CheckPlayer(sender))
+        {
+            return;
+        }
+        
+        gameSession.GuessedWord = wordPayload[1];
+
+        var sb = new StringBuilder();
+        sb.Append('*', gameSession.GuessedWord.Length);
+        
+        await gameSession.Hosted.Connector.SendOk();
+        
+        await gameSession.Player!.Connector.SendReadyToGuess(sb.ToString());
+    }
+}

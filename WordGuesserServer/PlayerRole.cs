@@ -2,6 +2,6 @@
 
 public enum PlayerRole
 {
-    Hosted,
-    Guesser
+    Hosted = 1000,
+    Guesser = 2000
 }

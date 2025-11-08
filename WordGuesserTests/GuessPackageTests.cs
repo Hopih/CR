@@ -86,7 +86,7 @@ public class GuessPackageTests
     
     [Theory]
     [InlineData(Command.Create)]
-    [InlineData(Command.Connect)]
+    [InlineData(Command.ReadyToGuess)]
     [InlineData(Command.End)]
     [InlineData(Command.Guess)]
     [InlineData(Command.Join)]

@@ -54,12 +54,13 @@ public class WgServer
                             GuessCommandHelper.CommandResponse(commandResponse), Command.CommandResponse)
                         .Build(),
                     SocketFlags.None);
+                continue;
             }
 
-            //TODO: analyse all command
+            var commandHandler = CommandHandlerFactory.GetHandler(response.Value.Command);
+
+            await commandHandler.Invoke(connection, _gameSessions, response.Value.Payload, cts.Token);
         }
         while(!cts.IsCancellationRequested || connection.Connected);
-
     }
-    
 }

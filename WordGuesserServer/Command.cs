@@ -2,7 +2,7 @@
 
 public enum Command : byte
 {
-    Connect = 0x05,
+    ReadyToGuess = 0x05,
     CommandResponse = 0x06,
     Create = 0x10,
     SessionId = 0x11,

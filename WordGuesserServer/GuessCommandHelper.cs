@@ -10,6 +10,7 @@ public class GuessCommandHelper
         { Command.SessionId, payload => Guid.Parse(Encoding.ASCII.GetString(payload)) },
         { Command.Join, payload => Guid.Parse(Encoding.ASCII.GetString(payload)) },
         { Command.Word, payload => Encoding.ASCII.GetString(payload) },
+        { Command.Ready , payload => (PlayerRole)BitConverter.ToInt32(payload, 0)},
         { Command.Guess, payload => Encoding.ASCII.GetString(payload) },
         { Command.GuessResult, payload => Encoding.ASCII.GetString(payload) },
         { Command.Win, payload => Encoding.ASCII.GetString(payload) },
@@ -22,6 +23,9 @@ public class GuessCommandHelper
 
     private static byte[] Encode(Guid id)
         => Encoding.ASCII.GetBytes(id.ToString());
+    
+    private static byte[] Encode(PlayerRole id)
+        => BitConverter.GetBytes((int)id);
     
     private static string DecodeString(byte[] payload)
         => payload.Length == 0 ? string.Empty : Encoding.ASCII.GetString(payload);
@@ -47,8 +51,8 @@ public class GuessCommandHelper
         => Guid.Parse(DecodeString(payload));
     
 
-    public static byte[] Connect()
-        => new GuessPackageBuilder([], Command.Connect).Build();
+    public static byte[] ReadyToGuess(string mask)
+        => new GuessPackageBuilder(Encode(mask), Command.ReadyToGuess).Build();
 
     public static byte[] Create()
         => new GuessPackageBuilder([], Command.Create).Build();
@@ -59,8 +63,8 @@ public class GuessCommandHelper
     public static byte[] SendSessionId(Guid sessionId)
         => new GuessPackageBuilder(Encode(sessionId), Command.SessionId).Build();
 
-    public static byte[] Ready()
-        => new GuessPackageBuilder([], Command.Ready).Build();
+    public static byte[] Ready(PlayerRole role)
+        => new GuessPackageBuilder(Encode(role), Command.Ready).Build();
 
     public static byte[] Word(Guid sessionId, string word)
         => new GuessPackageBuilder(Encode($"{sessionId}:{word}"), Command.Word).Build();
