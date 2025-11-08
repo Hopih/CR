@@ -1,8 +1,7 @@
 using System.Net;
 using System.Text;
+using System.Text.Json;
 using CacheExample;
-using Newtonsoft.Json;
-using OpenApiHttpClientExample;
 using StackExchange.Redis;
 using WebServerExample.Models;
 
@@ -10,7 +9,7 @@ namespace WebServerExample;
 
 public static class WebHelper
 {
-    static readonly DatabaseContext _dbContext = new ("localhost\\SQLEXPRESS", "MySiteExampleDb");
+    private static readonly DatabaseContext DbContext = new ("localhost\\SQLEXPRESS", "MySiteExampleDb");
     
     [Mapping("weather","GET", "user")]
     public static async Task ShowWeatherApi(HttpListenerContext httpListenerContext)
@@ -21,24 +20,7 @@ public static class WebHelper
             var userId = RedisStore.RedisCache.StringGet(sessionId.Value);
             if (userId.HasValue)
             {
-                //тут можно например счетчик вести для данного пользователя. Нас попросили просто вывести данные 
-                var weatherApi = new OpenWeatherHttpClient();
-                var weather = await weatherApi.GetWeatherDataByCity("Kazan");
-                if (weather != null)
-                {
-                    httpListenerContext.Response.StatusCode = 200;
-                    httpListenerContext.Response.ContentType = "application/json";
-                    await httpListenerContext.Response.OutputStream.WriteAsync(Encoding.UTF8.GetBytes(weather));
-                }
-                else
-                {
-                    httpListenerContext.Response.StatusCode = 500;
-                    httpListenerContext.Response.ContentType = "text/plain; charset=utf-8";
-                    await httpListenerContext.Response.OutputStream.WriteAsync(Encoding.UTF8.GetBytes("Искомых данных о погоде нет!"));
-                }
-
-                sessionId.Expires = DateTime.UtcNow.AddMinutes(30d);
-                return;
+                //todo api add
             }
         }
         httpListenerContext.Response.StatusCode = 403;
@@ -51,10 +33,10 @@ public static class WebHelper
     {
         using var sr = new StreamReader(httpListenerContext.Request.InputStream);
 
-        var user = JsonConvert.DeserializeObject<User>(await sr.ReadToEndAsync());
+        var user = JsonSerializer.Deserialize<User>(await sr.ReadToEndAsync());
         if (user != null)
         {
-            var result = await _dbContext.AddUser(user);
+            var result = await DbContext.AddUser(user);
 
             if (result != null)
             {
@@ -73,8 +55,8 @@ public static class WebHelper
     {
         using var sr = new StreamReader(context.Request.InputStream);
 
-        var loginModel = JsonConvert.DeserializeObject<LoginModel>(await sr.ReadToEndAsync());
-        var user = await _dbContext.GetUser(loginModel);
+        var loginModel = JsonSerializer.Deserialize<LoginModel>(await sr.ReadToEndAsync());
+        var user = await DbContext.GetUser(loginModel);
         if (user != null)
         {
             var sessionId = BCrypt.Net.BCrypt.HashPassword(user.Id + "salt");

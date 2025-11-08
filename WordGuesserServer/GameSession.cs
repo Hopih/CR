@@ -9,4 +9,6 @@ public class GameSession
     public required Player Hosted { get; set; }
     public string? GuessedWord { get; set; }
     public int TryCount { get; set; } = 5;
+    
+    public SessionState State { get; set; } = SessionState.WaitingForPlayer;
 }

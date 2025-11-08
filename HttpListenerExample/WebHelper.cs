@@ -5,9 +5,6 @@ using CacheExample;
 using CodeJam;
 using HttpListenerExample.Entities;
 using HttpListenerExample.Helpers;
-using Microsoft.Extensions.Caching.Memory;
-using MongoDB.Driver;
-using OpenApiHttpClientExample;
 using StackExchange.Redis;
 
 namespace HttpListenerExample;
@@ -18,16 +15,6 @@ public static class WebHelper
     public static async Task ShowWeatherApi(HttpListenerContext httpListenerContext, CancellationToken ctx)
     {
         //тут можно например счетчик вести для данного пользователя. Нас попросили просто вывести данные 
-        var weatherApi = new OpenWeatherHttpClient();
-        var weather = await weatherApi.GetWeatherDataByCity("Kazan");
-        if (weather != null)
-        {
-            httpListenerContext.Response.StatusCode = 200;
-            httpListenerContext.Response.ContentType = "application/json; charset=utf-8";
-            await httpListenerContext.Response.OutputStream.WriteAsync(Encoding.UTF8.GetBytes(weather), ctx);
-            return;
-        }
-        
         httpListenerContext.Response.StatusCode = 500;
         httpListenerContext.Response.ContentType = "text/plain; charset=utf-8";
         await httpListenerContext.Response.OutputStream.WriteAsync(Encoding.UTF8.GetBytes("Искомых данных о погоде нет!"), ctx);
