@@ -18,9 +18,6 @@ public class CreateCommandHandler : ICommandHandler
         };
         gameSessions.TryAdd(session.Id, session);
         
-        await sender.SendAsync(new GuessPackageBuilder(
-                    GuessCommandHelper.SendSessionId(session.Id), Command.SessionId)
-                .Build(),
-            SocketFlags.None);
+        await sender.SendSessionId(session.Id);
     }
 }

@@ -31,6 +31,14 @@ public static class SocketExtension
                 Command.ReadyToGuess).Build(),
             SocketFlags.None);
     }
+    
+    public static async Task SendSessionId(this Socket socket, Guid sessionId)
+    {
+        await socket.SendAsync(new GuessPackageBuilder(
+                    GuessCommandHelper.SendSessionId(sessionId), Command.SessionId)
+                .Build(),
+            SocketFlags.None);
+    }
 
     private static async Task SendResponseCommand(this Socket socket, CommandResponse commandResponse)
     {
