@@ -2,7 +2,7 @@
 
 namespace WordGuesserServer;
 
-public class GuessCommandHelper
+public static class GuessCommandHelper
 {
     
     private static readonly Dictionary<Command, Func<byte[], object?>> Decoders = new()

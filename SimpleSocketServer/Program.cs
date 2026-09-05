@@ -25,11 +25,6 @@ do
     {
         break;
     }
-
-    result = await connectionSocket.ReceiveAsync(
-        new ArraySegment<byte>(buffer), SocketFlags.None);
-    resultMessage.Append(Encoding.UTF8.GetString(buffer));
-    
 } while (result > 0);
 
 
@@ -39,9 +34,11 @@ var bytesSent = await connectionSocket.SendAsync(
     new ArraySegment<byte>(Encoding.UTF8.GetBytes("Hello client!")),
     SocketFlags.None);
 
-Console.WriteLine($"send{bytesSent}");
+Console.WriteLine($"send {bytesSent}");
 
-await socketServer.DisconnectAsync(true);
+await connectionSocket.DisconnectAsync(true);
+
+socketServer.Close();
 
 
 

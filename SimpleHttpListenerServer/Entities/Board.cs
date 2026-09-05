@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace SimpleHttpListenerServer.Entities;
 
 public sealed class Board 

@@ -19,15 +19,18 @@ public class WgServer
     public async Task StartServer()
     {
         var cts = new CancellationTokenSource();
-        try
+        while (!cts.IsCancellationRequested)
         {
-            var connection = await _server.AcceptAsync(cts.Token);
+            try
+            {
+                var connection = await _server.AcceptAsync(cts.Token);
 
-            _ = Task.Run(async () => await HandleConnection(connection,  cts), cts.Token);
-        }
-        catch
-        {
-            await _server.DisconnectAsync(true, cts.Token);
+                _ = Task.Run(async () => await HandleConnection(connection,  cts), cts.Token);
+            }
+            catch
+            {
+                await _server.DisconnectAsync(true, cts.Token);
+            }
         }
     }
 

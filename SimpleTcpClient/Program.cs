@@ -13,19 +13,19 @@ var socketClient = new Socket(
 //socketClient.Bind(
 //   new IPEndPoint(new IPAddress(new byte[]{127, 0, 0, 1}),5000));
 
-//await socketClient.ConnectAsync("google.com", 80);
+await socketClient.ConnectAsync("google.com", 80);
 
-//var message = "GET / HTTP/1.1\r\nHost: google.com\r\nConnection: close\r\n\r\n";
+var message = "GET / HTTP/1.1\r\nHost: google.com\r\nConnection: close\r\n\r\n";
 
-await socketClient.ConnectAsync("localhost", 5000);
+//await socketClient.ConnectAsync("localhost", 5000);
 
-var message = "Hello server!";
+//var message = "Hello server!";
 
 var bytesSent = await socketClient.SendAsync(
     new ArraySegment<byte>(Encoding.UTF8.GetBytes(message)),
     SocketFlags.None);
 
-Console.WriteLine($"send{bytesSent}");
+Console.WriteLine($"send {bytesSent}");
 
 var buffer = new byte[256];
 var result = 0;
@@ -38,13 +38,10 @@ do
     {
         break;
     }
-    
-    result = await socketClient.ReceiveAsync(
-        new ArraySegment<byte>(buffer), SocketFlags.None);
 } while (result > 0);
 
 Console.WriteLine(resultMessage.ToString());
 
 await socketClient.DisconnectAsync(true);
 
-socketClient.Dispose();
+socketClient.Close();
