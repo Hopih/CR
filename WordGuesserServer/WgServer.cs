@@ -36,10 +36,7 @@ public class WgServer
 
     private async Task HandleConnection(Socket connection, CancellationTokenSource cts)
     {
-        await connection.SendAsync(new GuessPackageBuilder(
-                    GuessCommandHelper.CommandResponse(CommandResponse.Ok), Command.CommandResponse)
-                .Build(),
-            SocketFlags.None);
+        await connection.SendOk();
         
         ArraySegment<byte> buffer = new byte[256];
 
@@ -53,9 +50,7 @@ public class WgServer
 
             if (response == null || commandResponse != CommandResponse.Ok)
             {
-                await connection.SendAsync(new GuessPackageBuilder(
-                            GuessCommandHelper.CommandResponse(commandResponse), Command.CommandResponse)
-                        .Build(),
+                await connection.SendAsync(GuessCommandHelper.CommandResponse(commandResponse),
                     SocketFlags.None);
                 continue;
             }

@@ -14,7 +14,7 @@ public static class GuessCommandHelper
         { Command.Guess, payload => Encoding.ASCII.GetString(payload) },
         { Command.GuessResult, payload => Encoding.ASCII.GetString(payload) },
         { Command.Win, payload => Encoding.ASCII.GetString(payload) },
-        { Command.CommandResponse ,  payload => (CommandResponse)payload[GuessPackageMeta.PackagePayloadIndex] }
+        { Command.CommandResponse ,  payload => (CommandResponse)payload[0] }
     };
     
     

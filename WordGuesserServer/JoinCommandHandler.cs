@@ -23,12 +23,10 @@ public class JoinCommandHandler :  ICommandHandler
         };
         gameSession.Hosted.Role = PlayerRole.Hosted;
         
-        await sender.SendAsync(new GuessPackageBuilder(
-                    GuessCommandHelper.Ready(PlayerRole.Guesser), Command.Ready).Build(),
+        await sender.SendAsync(GuessCommandHelper.Ready(PlayerRole.Guesser),
             SocketFlags.None);
         
-        await gameSession.Hosted.Connector.SendAsync(new GuessPackageBuilder(
-                GuessCommandHelper.Ready(PlayerRole.Hosted), Command.Ready).Build(),
+        await gameSession.Hosted.Connector.SendAsync(GuessCommandHelper.Ready(PlayerRole.Hosted),
             SocketFlags.None);
     }
 }

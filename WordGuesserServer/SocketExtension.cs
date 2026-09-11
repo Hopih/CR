@@ -27,24 +27,19 @@ public static class SocketExtension
     
     public static async Task SendReadyToGuess(this Socket socket, string mask)
     {
-        await socket.SendAsync(new GuessPackageBuilder(GuessCommandHelper.ReadyToGuess(mask), 
-                Command.ReadyToGuess).Build(),
+        await socket.SendAsync(GuessCommandHelper.ReadyToGuess(mask),
             SocketFlags.None);
     }
     
     public static async Task SendSessionId(this Socket socket, Guid sessionId)
     {
-        await socket.SendAsync(new GuessPackageBuilder(
-                    GuessCommandHelper.SendSessionId(sessionId), Command.SessionId)
-                .Build(),
+        await socket.SendAsync(GuessCommandHelper.SendSessionId(sessionId),
             SocketFlags.None);
     }
 
     private static async Task SendResponseCommand(this Socket socket, CommandResponse commandResponse)
     {
-        await socket.SendAsync(new GuessPackageBuilder(
-                    GuessCommandHelper.CommandResponse(commandResponse), Command.CommandResponse)
-                .Build(),
+        await socket.SendAsync(GuessCommandHelper.CommandResponse(commandResponse),
             SocketFlags.None);
     }
 }
