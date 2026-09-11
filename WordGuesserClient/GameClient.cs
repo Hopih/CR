@@ -1,5 +1,5 @@
 ﻿using System.Net.Sockets;
-using WordGuesserServer;
+using WordGuesser.Protocol;
 
 namespace WordGuesserClient;
 
@@ -28,8 +28,21 @@ public class GameClient
 
         while (Running)
         {
-            await HandleInput();
+            try
+            {
+                await HandleInput();
+            }
+            catch (Exception ex) when (ex is ArgumentException or FormatException)
+            {
+                ConsoleUi.Error(ex.Message);
+            }
+            catch (Exception ex) when (ex is IOException or SocketException or ObjectDisposedException)
+            {
+                ConsoleUi.Error($"Connection closed: {ex.Message}");
+                Running = false;
+            }
         }
+        _socket.Dispose();
     }
 
     private async Task HandleInput()
@@ -95,23 +108,27 @@ public class GameClient
 
     private async Task ListenLoop()
     {
-        byte[] buf = new byte[256];
-
-        while (Running)
+        try
         {
-            int n = await _socket.ReceiveAsync(buf, SocketFlags.None);
-            if (n <= 0) break;
-
-            var span = buf.AsSpan(0, n);
-            var parsed = GuessPackageParser.TryParse(span, out var code);
-
-            if (parsed == null)
+            while (Running)
             {
-                ConsoleUi.Error($"Invalid packet: {code}");
-                continue;
-            }
+                var parsed = await _socket.ReceivePacketAsync();
+                if (parsed == null)
+                    break;
 
-            await HandleServer(parsed.Value.Command, parsed.Value.Payload);
+                GuessCommandHelper.Decode(parsed.Value.Command, parsed.Value.Payload);
+                await HandleServer(parsed.Value.Command, parsed.Value.Payload);
+            }
+        }
+        catch (Exception ex) when (ex is IOException or InvalidDataException or SocketException or ObjectDisposedException or FormatException)
+        {
+            if (Running)
+                ConsoleUi.Error($"Connection closed: {ex.Message}");
+        }
+        finally
+        {
+            Running = false;
+            _socket.Dispose();
         }
     }
 

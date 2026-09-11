@@ -1,3 +1,4 @@
+using WordGuesser.Protocol;
 using System.Collections.Concurrent;
 using System.Net.Sockets;
 
@@ -21,12 +22,12 @@ public class EndCommandHandler: ICommandHandler
             return;
         }
 
-        await session.Hosted.Connector.SendAsync(
-            GuessCommandHelper.End(), SocketFlags.None);
+        await session.Hosted.Connector.SendPacketAsync(
+            GuessCommandHelper.End(), ct);
 
         if (session.Player != null)
-            await session.Player.Connector.SendAsync(
-                GuessCommandHelper.End(), SocketFlags.None);
+            await session.Player.Connector.SendPacketAsync(
+                GuessCommandHelper.End(), ct);
 
         sessions.TryRemove(session.Id, out _);
     }

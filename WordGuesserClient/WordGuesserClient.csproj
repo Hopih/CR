@@ -5,11 +5,10 @@
         <TargetFramework>net8.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <LangVersion>preview</LangVersion>
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\WordGuesserServer\WordGuesserServer.csproj" />
+      <ProjectReference Include="..\WordGuesser.Protocol\WordGuesser.Protocol.csproj" />
     </ItemGroup>
 
 </Project>

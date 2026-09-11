@@ -1,3 +1,4 @@
+using WordGuesser.Protocol;
 using System.Collections.Concurrent;
 using System.Net.Sockets;
 
@@ -29,8 +30,8 @@ public class SwapCommandHandler : ICommandHandler
         // Проверяем, не завершён ли матч
         if (session.Hosted.WinCount >= 3 || session.Player!.WinCount >= 3)
         {
-            await session.Hosted.Connector.SendAsync(GuessCommandHelper.End(), SocketFlags.None);
-            await session.Player!.Connector.SendAsync(GuessCommandHelper.End(), SocketFlags.None);
+            await session.Hosted.Connector.SendPacketAsync(GuessCommandHelper.End(), ct);
+            await session.Player!.Connector.SendPacketAsync(GuessCommandHelper.End(), ct);
             sessions.TryRemove(session.Id, out _);
             return;
         }
@@ -43,10 +44,10 @@ public class SwapCommandHandler : ICommandHandler
         session.TryCount = 5;
 
         // Уведомляем игроков
-        await session.Hosted.Connector.SendAsync(
-            GuessCommandHelper.Ready(PlayerRole.Hosted), SocketFlags.None);
-        await session.Player.Connector.SendAsync(
-            GuessCommandHelper.Ready(PlayerRole.Guesser), SocketFlags.None);
+        await session.Hosted.Connector.SendPacketAsync(
+            GuessCommandHelper.Ready(PlayerRole.Hosted), ct);
+        await session.Player.Connector.SendPacketAsync(
+            GuessCommandHelper.Ready(PlayerRole.Guesser), ct);
 
         await session.Hosted.Connector.SendOk();
         await session.Player.Connector.SendOk();

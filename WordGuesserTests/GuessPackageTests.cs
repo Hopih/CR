@@ -1,5 +1,5 @@
+using WordGuesser.Protocol;
 using System.Text;
-using WordGuesserServer;
 
 namespace WordGuesserTests;
 

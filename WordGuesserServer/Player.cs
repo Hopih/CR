@@ -1,4 +1,5 @@
-﻿using System.Net.Sockets;
+﻿using WordGuesser.Protocol;
+using System.Net.Sockets;
 
 namespace WordGuesserServer;
 

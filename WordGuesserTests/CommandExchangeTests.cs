@@ -1,3 +1,4 @@
+using WordGuesser.Protocol;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
@@ -43,10 +44,10 @@ public class CommandExchangeTests
 
         var responses = new (Func<Task> Send, CommandResponse Expected)[]
         {
-            (pair.Server.SendOk, CommandResponse.Ok),
-            (pair.Server.SendPlayerNotJoined, CommandResponse.PlayerNotJoined),
-            (pair.Server.SendIncorrectSender, CommandResponse.IncorrectSender),
-            (pair.Server.SendSessionNotFound, CommandResponse.SessionNotFound)
+            (() => pair.Server.SendOk(), CommandResponse.Ok),
+            (() => pair.Server.SendPlayerNotJoined(), CommandResponse.PlayerNotJoined),
+            (() => pair.Server.SendIncorrectSender(), CommandResponse.IncorrectSender),
+            (() => pair.Server.SendSessionNotFound(), CommandResponse.SessionNotFound)
         };
         foreach (var (send, expected) in responses)
         {
@@ -79,6 +80,42 @@ public class CommandExchangeTests
         Assert.Equal(sizeof(int), guestReady.Payload.Length);
         Assert.Equal(PlayerRole.Hosted, GuessCommandHelper.Decode<PlayerRole>(hostReady.Command, hostReady.Payload));
         Assert.Equal(PlayerRole.Guesser, GuessCommandHelper.Decode<PlayerRole>(guestReady.Command, guestReady.Payload));
+    }
+
+    [Fact]
+    public async Task Socket_Transport_Reads_Combined_Frames_And_Clean_Disconnect()
+    {
+        using var pair = await SocketPair.Connect();
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        using var sender = new NetworkStream(pair.Server, ownsSocket: false);
+        var packets = GuessCommandHelper.Create().Concat(GuessCommandHelper.Win("ЁЖИК")).ToArray();
+        await sender.WriteAsync(packets, timeout.Token);
+        pair.Server.Shutdown(SocketShutdown.Send);
+
+        var first = await pair.Client.ReceivePacketAsync(timeout.Token);
+        var second = await pair.Client.ReceivePacketAsync(timeout.Token);
+        Assert.Equal(Command.Create, first!.Value.Command);
+        Assert.Equal("ЁЖИК", GuessCommandHelper.Decode<string>(second!.Value.Command, second.Value.Payload));
+        Assert.Null(await pair.Client.ReceivePacketAsync(timeout.Token));
+    }
+
+    [Fact]
+    public async Task Socket_Transport_Serializes_Concurrent_Senders()
+    {
+        using var pair = await SocketPair.Connect();
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        var expected = Enumerable.Range(0, 100).Select(i => $"СЛОВО{i}").ToArray();
+        var sending = Task.WhenAll(expected.Select(word => pair.Server.SendPacketAsync(GuessCommandHelper.Win(word), timeout.Token)));
+        var actual = new List<string>();
+        foreach (var _ in expected)
+        {
+            var packet = await pair.Client.ReceivePacketAsync(timeout.Token);
+            Assert.NotNull(packet);
+            Assert.Equal(Command.Win, packet.Value.Command);
+            actual.Add(GuessCommandHelper.Decode<string>(packet.Value.Command, packet.Value.Payload));
+        }
+        await sending;
+        Assert.Equal(expected.Order(), actual.Order());
     }
 
     private static async Task<(Command Command, byte[] Payload)> ReceivePacket(Socket socket, CancellationToken ct)

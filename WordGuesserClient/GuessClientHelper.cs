@@ -1,5 +1,5 @@
 ﻿using System.Net.Sockets;
-using WordGuesserServer;
+using WordGuesser.Protocol;
 
 namespace WordGuesserClient;
 
@@ -24,5 +24,5 @@ public class GuessClientHelper(Socket socket)
         Send(GuessCommandHelper.End());
 
     private Task Send(byte[] pkg) =>
-        socket.SendAsync(pkg, SocketFlags.None);
+        socket.SendPacketAsync(pkg);
 }

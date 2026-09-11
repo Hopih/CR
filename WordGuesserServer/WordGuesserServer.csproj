@@ -7,4 +7,7 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\WordGuesser.Protocol\WordGuesser.Protocol.csproj" />
+    </ItemGroup>
 </Project>

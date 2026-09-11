@@ -1,4 +1,5 @@
-﻿namespace WordGuesserServer;
+﻿using WordGuesser.Protocol;
+namespace WordGuesserServer;
 
 [AttributeUsage(AttributeTargets.Class)]
 public class CommandAttribute(Command command) : Attribute

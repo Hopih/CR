@@ -1,4 +1,5 @@
-﻿using System.Collections.Concurrent;
+﻿using WordGuesser.Protocol;
+using System.Collections.Concurrent;
 using System.Net.Sockets;
 
 namespace WordGuesserServer;
@@ -23,10 +24,10 @@ public class JoinCommandHandler :  ICommandHandler
         };
         gameSession.Hosted.Role = PlayerRole.Hosted;
         
-        await sender.SendAsync(GuessCommandHelper.Ready(PlayerRole.Guesser),
-            SocketFlags.None);
+        await sender.SendPacketAsync(GuessCommandHelper.Ready(PlayerRole.Guesser),
+            ct);
         
-        await gameSession.Hosted.Connector.SendAsync(GuessCommandHelper.Ready(PlayerRole.Hosted),
-            SocketFlags.None);
+        await gameSession.Hosted.Connector.SendPacketAsync(GuessCommandHelper.Ready(PlayerRole.Hosted),
+            ct);
     }
 }

@@ -1,4 +1,5 @@
-﻿using System.Collections.Concurrent;
+﻿using WordGuesser.Protocol;
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 
@@ -36,29 +37,50 @@ public class WgServer
 
     private async Task HandleConnection(Socket connection, CancellationTokenSource cts)
     {
-        await connection.SendOk();
-        
-        ArraySegment<byte> buffer = new byte[256];
-
-        do
+        var ct = cts.Token;
+        try
         {
-            var messageByteCount = await connection.ReceiveAsync(buffer, SocketFlags.None);
-
-            var message = buffer[..messageByteCount];
-
-            var response = GuessPackageParser.TryParse(message, out var commandResponse);
-
-            if (response == null || commandResponse != CommandResponse.Ok)
+            await connection.SendOk(ct);
+            while (!ct.IsCancellationRequested)
             {
-                await connection.SendAsync(GuessCommandHelper.CommandResponse(commandResponse),
-                    SocketFlags.None);
-                continue;
+                var packet = await connection.ReceivePacketAsync(ct);
+                if (packet == null)
+                    break;
+
+                ICommandHandler commandHandler;
+                try
+                {
+                    commandHandler = CommandHandlerFactory.GetHandler(packet.Value.Command);
+                }
+                catch (NotSupportedException)
+                {
+                    await connection.SendResponseCommand(CommandResponse.CommandIncorrect, ct);
+                    continue;
+                }
+
+                try
+                {
+                    GuessCommandHelper.Decode(packet.Value.Command, packet.Value.Payload);
+                }
+                catch (FormatException)
+                {
+                    await connection.SendResponseCommand(CommandResponse.PackageIncorrect, ct);
+                    continue;
+                }
+
+                await commandHandler.Invoke(connection, _gameSessions, packet.Value.Payload, ct);
             }
-
-            var commandHandler = CommandHandlerFactory.GetHandler(response.Value.Command);
-
-            await commandHandler.Invoke(connection, _gameSessions, response.Value.Payload, cts.Token);
         }
-        while(!cts.IsCancellationRequested || connection.Connected);
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+        }
+        catch (Exception ex) when (ex is IOException or InvalidDataException or SocketException or ObjectDisposedException)
+        {
+            Console.Error.WriteLine($"Connection closed: {ex.Message}");
+        }
+        finally
+        {
+            connection.Dispose();
+        }
     }
 }

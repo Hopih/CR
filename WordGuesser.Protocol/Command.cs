@@ -1,4 +1,4 @@
-﻿namespace WordGuesserServer;
+namespace WordGuesser.Protocol;
 
 public enum Command : byte
 {

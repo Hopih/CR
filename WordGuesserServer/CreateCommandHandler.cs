@@ -1,4 +1,5 @@
-﻿using System.Collections.Concurrent;
+﻿using WordGuesser.Protocol;
+using System.Collections.Concurrent;
 using System.Net.Sockets;
 
 namespace WordGuesserServer;

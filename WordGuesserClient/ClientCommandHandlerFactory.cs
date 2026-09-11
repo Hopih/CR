@@ -1,5 +1,5 @@
 ﻿using System.Reflection;
-using WordGuesserServer;
+using WordGuesser.Protocol;
 
 namespace WordGuesserClient;
 

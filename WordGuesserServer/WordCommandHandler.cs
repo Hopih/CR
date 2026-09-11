@@ -1,4 +1,5 @@
-﻿using System.Collections.Concurrent;
+﻿using WordGuesser.Protocol;
+using System.Collections.Concurrent;
 using System.Net.Sockets;
 using System.Text;
 
@@ -10,8 +11,8 @@ public class WordCommandHandler : ICommandHandler
     public async Task Invoke(Socket sender, ConcurrentDictionary<Guid, GameSession> gameSessions,
         byte[]? payload = null, CancellationToken ct = default)
     {
-        var wordPayload = GuessCommandHelper.Decode<string>(Command.Word, payload!)!.Split(':');
-        var sessionCheck = await gameSessions.CheckSessionById(Guid.Parse(wordPayload[0]), sender);
+        var (sessionId, word) = GuessCommandHelper.DecodeSessionWithData(Command.Word, payload!);
+        var sessionCheck = await gameSessions.CheckSessionById(sessionId, sender);
         
         if (!sessionCheck.HasSession)
         {
@@ -26,7 +27,7 @@ public class WordCommandHandler : ICommandHandler
             return;
         }
         
-        gameSession.GuessedWord = wordPayload[1];
+        gameSession.GuessedWord = word;
 
         var sb = new StringBuilder();
         sb.Append('*', gameSession.GuessedWord.Length);

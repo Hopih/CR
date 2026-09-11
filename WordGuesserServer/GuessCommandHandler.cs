@@ -1,3 +1,4 @@
+using WordGuesser.Protocol;
 using System.Collections.Concurrent;
 using System.Net.Sockets;
 using System.Text;
@@ -13,7 +14,7 @@ public class GuessCommandHandler : ICommandHandler
         byte[]? payload = null,
         CancellationToken ct = default)
     {
-        var (sessionId, attempt) = DecodeSession(payload!);
+        var (sessionId, attempt) = GuessCommandHelper.DecodeSessionWithData(Command.Guess, payload!);
         var sessionCheck = await sessions.CheckSessionById(sessionId, sender);
         if (!sessionCheck.HasSession)
             return;
@@ -55,34 +56,28 @@ public class GuessCommandHandler : ICommandHandler
         if (win)
         {
             session.Player.WinCount++;
-            await session.Player.Connector.SendAsync(
-                GuessCommandHelper.Win(word), SocketFlags.None);
-            await session.Hosted.Connector.SendAsync(
-                GuessCommandHelper.Win(word), SocketFlags.None);
+            await session.Player.Connector.SendPacketAsync(
+                GuessCommandHelper.Win(word), ct);
+            await session.Hosted.Connector.SendPacketAsync(
+                GuessCommandHelper.Win(word), ct);
         }
         else if (session.TryCount <= 0)
         {
-            await session.Player.Connector.SendAsync(
-                GuessCommandHelper.End(), SocketFlags.None);
-            await session.Hosted.Connector.SendAsync(
-                GuessCommandHelper.End(), SocketFlags.None);
+            await session.Player.Connector.SendPacketAsync(
+                GuessCommandHelper.End(), ct);
+            await session.Hosted.Connector.SendPacketAsync(
+                GuessCommandHelper.End(), ct);
         }
         else
         {
             string mask = sb.ToString();
-            await session.Player.Connector.SendAsync(
-                GuessCommandHelper.Result(mask), SocketFlags.None);
-            await session.Hosted.Connector.SendAsync(
-                GuessCommandHelper.Result(mask), SocketFlags.None);
+            await session.Player.Connector.SendPacketAsync(
+                GuessCommandHelper.Result(mask), ct);
+            await session.Hosted.Connector.SendPacketAsync(
+                GuessCommandHelper.Result(mask), ct);
         }
 
         await sender.SendOk();
     }
 
-    private static (Guid sessionId, string attempt) DecodeSession(byte[] payload)
-    {
-        var decoded = GuessCommandHelper.Decode<string>(Command.Guess, payload)!;
-        var parts = decoded.Split(':', 2);
-        return (Guid.Parse(parts[0]), parts[1]);
-    }
 }
