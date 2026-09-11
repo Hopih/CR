@@ -227,8 +227,7 @@ public class ServerLifecycleTests
         await game.RequestError(client, new GuessPackageBuilder([1], Command.Join).Build(), CommandResponse.PackageIncorrect);
         await game.RequestError(client, GuessCommandHelper.Ready(PlayerRole.Guesser), CommandResponse.CommandIncorrect);
         await game.Create(client);
-        using var stream = new NetworkStream(client, ownsSocket: false);
-        await stream.WriteAsync(new byte[] { 0 }, game.Token);
+        await RawSocketTestSupport.SendAll(client, new byte[] { 0 }, game.Token);
         Assert.Null(await client.ReceivePacketAsync(game.Token));
         await game.Until(() => game.Server.SessionCount == 0);
         using var other = await game.Connect();
@@ -243,8 +242,7 @@ public class ServerLifecycleTests
         using var second = await game.Connect();
         await game.Create(first);
         await game.Create(second);
-        using var stream = new NetworkStream(second, ownsSocket: false);
-        await stream.WriteAsync(new byte[] { 2 }, game.Token); // An unfinished header.
+        await RawSocketTestSupport.SendAll(second, new byte[] { 2 }, game.Token); // An unfinished header.
         await game.Server.StopAsync().WaitAsync(game.Token);
         await game.Run.WaitAsync(game.Token);
         Assert.Equal(0, game.Server.SessionCount);

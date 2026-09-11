@@ -79,7 +79,7 @@ public sealed class WgServer : IAsyncDisposable
         catch (SocketException) when (ct.IsCancellationRequested) { }
         finally
         {
-            lifetime.Cancel();
+            await lifetime.CancelAsync();
             _server.Dispose();
             // No further accepts can add connections after this point.
             var remaining = _connections.ToArray();
@@ -127,12 +127,12 @@ public sealed class WgServer : IAsyncDisposable
         catch (OperationCanceledException) { }
         catch (Exception ex) when (ex is IOException or InvalidDataException or SocketException or ObjectDisposedException)
         {
-            Console.Error.WriteLine($"Connection closed: {ex.Message}");
+            await Console.Error.WriteLineAsync($"Connection closed: {ex.Message}");
         }
         catch (Exception ex)
         {
             // Keep a failed handler observable without taking down unrelated connections.
-            Console.Error.WriteLine($"Connection handler failed: {ex}");
+            await Console.Error.WriteLineAsync($"Connection handler failed: {ex}");
         }
         finally
         {

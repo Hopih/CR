@@ -10,12 +10,12 @@ class Program
         if (args.Length > 2 || (args.Length > 0 && (!int.TryParse(args[0], out var requestedPort) || requestedPort is < 1 or > 65535)) ||
             (args.Length > 1 && !IPAddress.TryParse(args[1], out _)))
         {
-            Console.Error.WriteLine("Usage: WordGuesserServer [port: 1-65535] [bind IP]. Defaults: 5000, 127.0.0.1.");
+            await Console.Error.WriteLineAsync("Usage: WordGuesserServer [port: 1-65535] [bind IP]. Defaults: 5000, 127.0.0.1.");
             return 1;
         }
         var port = args.Length > 0 ? int.Parse(args[0]) : 5000;
         var address = args.Length > 1 ? IPAddress.Parse(args[1]) : IPAddress.Loopback;
-        using var cancellation = new CancellationTokenSource();
+        var cancellation = new CancellationTokenSource();
         ConsoleCancelEventHandler onCancel = (_, e) => { e.Cancel = true; cancellation.Cancel(); };
         Console.CancelKeyPress += onCancel;
         try
@@ -28,7 +28,7 @@ class Program
         }
         catch (SocketException ex)
         {
-            Console.Error.WriteLine($"Cannot start or run server: {ex.Message}");
+            await Console.Error.WriteLineAsync($"Cannot start or run server: {ex.Message}");
             return 1;
         }
         finally { Console.CancelKeyPress -= onCancel; }

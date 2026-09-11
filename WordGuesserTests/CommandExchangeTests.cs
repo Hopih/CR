@@ -89,9 +89,8 @@ public class CommandExchangeTests
     {
         using var pair = await SocketPair.Connect();
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-        using var sender = new NetworkStream(pair.Server, ownsSocket: false);
         var packets = GuessCommandHelper.Create().Concat(GuessCommandHelper.Win("ЁЖИК")).ToArray();
-        await sender.WriteAsync(packets, timeout.Token);
+        await RawSocketTestSupport.SendAll(pair.Server, packets, timeout.Token);
         pair.Server.Shutdown(SocketShutdown.Send);
 
         var first = await pair.Client.ReceivePacketAsync(timeout.Token);
