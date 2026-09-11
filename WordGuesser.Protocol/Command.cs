@@ -13,5 +13,8 @@ public enum Command : byte
     GuessResult = 0x41,
     Win = 0x50,
     Swap = 0x51,
-    End = 0x52
+    End = 0x52,
+    AttemptResult = 0x42,
+    RoundResult = 0x53,
+    MatchResult = 0x54
 }

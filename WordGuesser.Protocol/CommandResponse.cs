@@ -9,5 +9,8 @@ public enum CommandResponse
     PackageIncorrect,
     SessionNotFound,
     AlreadyInSession,
-    SessionFull
+    SessionFull,
+    InvalidState,
+    InvalidWord,
+    InvalidGuess
 }

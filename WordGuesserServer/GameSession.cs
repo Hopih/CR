@@ -9,7 +9,7 @@ public class GameSession
     public Player? Player { get; set; }
     public required Player Hosted { get; set; }
     public string? GuessedWord { get; set; }
-    public int TryCount { get; set; } = 5;
+    public int TryCount { get; set; } = GameRules.AttemptsPerRound;
     
     public SessionState State { get; set; } = SessionState.WaitingForPlayer;
 }

@@ -1,38 +1,21 @@
-﻿using WordGuesser.Protocol;
 using System.Net.Sockets;
-using System.Text;
+using WordGuesser.Protocol;
 
 namespace WordGuesserServer;
 
 [Command(Command.Word)]
 public class WordCommandHandler : ICommandHandler
 {
-    public async Task Invoke(Socket sender, GameSessionRegistry gameSessions,
-        byte[]? payload = null, CancellationToken ct = default)
+    public async Task Invoke(Socket sender, GameSessionRegistry sessions, byte[]? payload = null, CancellationToken ct = default)
     {
-        var (sessionId, word) = GuessCommandHelper.DecodeSessionWithData(Command.Word, payload!);
-        var sessionCheck = await gameSessions.CheckSessionById(sessionId, sender, ct);
-        
-        if (!sessionCheck.HasSession)
-        {
-            return;
-        }
-        
-        var gameSession = sessionCheck.Session!;
-
-        if (!await gameSession.CheckSessionHost(sender, ct) ||
-            !await gameSession.CheckPlayer(sender, ct))
-        {
-            return;
-        }
-        
-        gameSession.GuessedWord = word;
-
-        var sb = new StringBuilder();
-        sb.Append('*', gameSession.GuessedWord.Length);
-        
-        await gameSession.Hosted.Connector.SendOk(ct);
-        
-        await gameSession.Player!.Connector.SendReadyToGuess(sb.ToString(), ct);
+        var (id, word) = GuessCommandHelper.DecodeSessionWithData(Command.Word, payload!);
+        var session = sessions.Find(id);
+        if (session == null) { await sender.SendSessionNotFound(ct); return; }
+        if (!ReferenceEquals(session.Hosted.Connector, sender)) { await sender.SendIncorrectSender(ct); return; }
+        if (session.Player == null) { await sender.SendPlayerNotJoined(ct); return; }
+        var result = GameRules.SetWord(session, word);
+        await sender.SendResponseCommand(result, ct);
+        if (result == CommandResponse.Ok)
+            await session.Player.Connector.SendReadyToGuess(new string('*', word.Length), ct);
     }
 }

@@ -85,6 +85,10 @@ public static class GuessCommandHelper
 
         switch (command)
         {
+            case Command.AttemptResult:
+            case Command.RoundResult:
+            case Command.MatchResult:
+                return GameEventCodec.Decode(command, payload);
             case Command.Create:
             case Command.Swap:
             case Command.End:

@@ -50,6 +50,7 @@ public class GameClient
         switch (Role)
         {
             case PlayerRole.Guesser:
+                ConsoleUi.Info("Commands: guess | exit");
                 break;
             case null:
                 ConsoleUi.Info("Commands: create | join <session>");
@@ -137,6 +138,18 @@ public class GameClient
         //TODO: ClientHandlers
         switch (cmd)
         {
+            case Command.AttemptResult:
+                var attempt = GuessCommandHelper.Decode<AttemptResult>(cmd, payload);
+                ConsoleUi.Info($"Mask: {attempt.Mask}. Attempts left: {attempt.AttemptsLeft}");
+                break;
+            case Command.RoundResult:
+                var round = GuessCommandHelper.Decode<RoundResult>(cmd, payload);
+                ConsoleUi.Info($"Round {(round.Won ? "won" : "lost")}. Word: {round.Word}. Score (you : opponent): {round.YourScore} : {round.OpponentScore}");
+                break;
+            case Command.MatchResult:
+                var match = GuessCommandHelper.Decode<MatchResult>(cmd, payload);
+                ConsoleUi.Info($"Match {(match.Won ? "won" : "lost")}! Score: {match.YourScore} : {match.OpponentScore}");
+                break;
             case Command.CommandResponse:
                 var resp = GuessCommandHelper.Decode<CommandResponse>(cmd, payload);
                 ConsoleUi.Info($"[Server Response] {resp}");

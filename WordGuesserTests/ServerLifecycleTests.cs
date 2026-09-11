@@ -7,6 +7,118 @@ namespace WordGuesserTests;
 
 public class ServerLifecycleTests
 {
+    [Theory]
+    [InlineData("000")]
+    [InlineData("111")]
+    [InlineData("01010")]
+    public async Task Full_Match_Swaps_Roles_Counts_Points_And_Ends_At_Three(string winners)
+    {
+        await using var game = new RunningServer();
+        using var first = await game.Connect();
+        using var second = await game.Connect();
+        Socket[] players = [first, second];
+        var id = await game.Create(first);
+        await game.Join(first, second, id);
+        int[] scores = [0, 0];
+
+        for (var roundIndex = 0; roundIndex < winners.Length; roundIndex++)
+        {
+            var hostIndex = roundIndex % 2;
+            var guesserIndex = 1 - hostIndex;
+            var winnerIndex = winners[roundIndex] - '0';
+            await players[hostIndex].SendPacketAsync(GuessCommandHelper.Word(id, "кот"), game.Token);
+            var accepted = await game.Receive(players[hostIndex]);
+            Assert.Equal(CommandResponse.Ok, GuessCommandHelper.Decode<CommandResponse>(accepted.Command, accepted.Payload));
+            var ready = await game.Receive(players[guesserIndex]);
+            Assert.Equal(Command.ReadyToGuess, ready.Command);
+            Assert.Equal("***", GuessCommandHelper.Decode<string>(ready.Command, ready.Payload));
+
+            // Exercise both a win on the last attempt and loss on exhaustion.
+            for (var i = 0; i < 5; i++)
+            {
+                var guessed = i == 4 && winnerIndex == guesserIndex;
+                await players[guesserIndex].SendPacketAsync(GuessCommandHelper.Guess(id, guessed ? "КоТ" : "ДОМ"), game.Token);
+                foreach (var player in players)
+                {
+                    var packet = await game.Receive(player);
+                    Assert.Equal(Command.AttemptResult, packet.Command);
+                    var attempt = GuessCommandHelper.Decode<AttemptResult>(packet.Command, packet.Payload);
+                    Assert.Equal(4 - i, attempt.AttemptsLeft);
+                    Assert.Equal(guessed ? "КОТ" : "*О*", attempt.Mask);
+                }
+            }
+            scores[winnerIndex]++;
+            for (var i = 0; i < 2; i++)
+            {
+                var packet = await game.Receive(players[i]);
+                Assert.Equal(Command.RoundResult, packet.Command);
+                Assert.Equal(new RoundResult(i == winnerIndex, scores[i], scores[1 - i], 0, "КОТ"),
+                    GuessCommandHelper.Decode<RoundResult>(packet.Command, packet.Payload));
+            }
+
+            if (scores[winnerIndex] == 3)
+            {
+                for (var i = 0; i < 2; i++)
+                {
+                    var packet = await game.Receive(players[i]);
+                    Assert.Equal(Command.MatchResult, packet.Command);
+                    Assert.Equal(new MatchResult(i == winnerIndex, scores[i], scores[1 - i]),
+                        GuessCommandHelper.Decode<MatchResult>(packet.Command, packet.Payload));
+                    Assert.Equal(Command.End, (await game.Receive(players[i])).Command);
+                }
+                Assert.Equal(0, game.Server.SessionCount);
+                await game.RequestError(first, GuessCommandHelper.Guess(id, "КОТ"), CommandResponse.SessionNotFound);
+            }
+            else
+            {
+                for (var i = 0; i < 2; i++)
+                {
+                    var packet = await game.Receive(players[i]);
+                    Assert.Equal(Command.Ready, packet.Command);
+                    Assert.Equal(i == guesserIndex ? PlayerRole.Hosted : PlayerRole.Guesser,
+                        GuessCommandHelper.Decode<PlayerRole>(packet.Command, packet.Payload));
+                }
+            }
+        }
+    }
+
+    [Fact]
+    public async Task Invalid_Actions_Do_Not_Change_The_Round_Or_Consume_Attempts()
+    {
+        await using var game = new RunningServer();
+        using var host = await game.Connect();
+        using var guest = await game.Connect();
+        using var outsider = await game.Connect();
+        var id = await game.Create(host);
+        await game.RequestError(host, GuessCommandHelper.Word(id, "КОТ"), CommandResponse.PlayerNotJoined);
+        await game.Join(host, guest, id);
+        await game.RequestError(guest, GuessCommandHelper.Guess(id, "КОТ"), CommandResponse.InvalidState);
+        await game.RequestError(guest, GuessCommandHelper.Word(id, "КОТ"), CommandResponse.IncorrectSender);
+        await game.RequestError(outsider, GuessCommandHelper.Word(id, "КОТ"), CommandResponse.IncorrectSender);
+        await game.RequestError(host, GuessCommandHelper.Word(id, "КОТ1"), CommandResponse.InvalidWord);
+        await host.SendPacketAsync(GuessCommandHelper.Word(id, "КОТ"), game.Token);
+        await game.Receive(host);
+        await game.Receive(guest);
+        await game.RequestError(host, GuessCommandHelper.Word(id, "ДОМ"), CommandResponse.InvalidState);
+        await game.RequestError(host, GuessCommandHelper.Guess(id, "КОТ"), CommandResponse.IncorrectSender);
+        await game.RequestError(outsider, GuessCommandHelper.Guess(id, "КОТ"), CommandResponse.IncorrectSender);
+        await game.RequestError(guest, GuessCommandHelper.Guess(id, "КОТИК"), CommandResponse.InvalidGuess);
+        await game.RequestError(guest, GuessCommandHelper.Guess(id, "К Т"), CommandResponse.InvalidGuess);
+        await game.RequestError(host, GuessCommandHelper.Swap(), CommandResponse.InvalidState);
+        await guest.SendPacketAsync(GuessCommandHelper.Guess(id, "кот"), game.Token);
+        foreach (var socket in new[] { host, guest })
+        {
+            var attempt = await game.Receive(socket);
+            Assert.Equal(4, GuessCommandHelper.Decode<AttemptResult>(attempt.Command, attempt.Payload).AttemptsLeft);
+            var round = await game.Receive(socket);
+            Assert.Equal(Command.RoundResult, round.Command);
+            Assert.Equal(ReferenceEquals(socket, guest), GuessCommandHelper.Decode<RoundResult>(round.Command, round.Payload).Won);
+            Assert.Equal(Command.Ready, (await game.Receive(socket)).Command);
+        }
+        await game.RequestError(guest, GuessCommandHelper.Guess(id, "КОТ"), CommandResponse.IncorrectSender);
+        await game.RequestError(host, GuessCommandHelper.Guess(id, "КОТ"), CommandResponse.InvalidState);
+    }
+
     [Fact]
     public async Task Create_Join_Rejects_Duplicate_Membership_And_Third_Player()
     {
