@@ -1,4 +1,4 @@
-﻿using WordGuesser.Protocol;
+using WordGuesser.Protocol;
 
 namespace WordGuesserClient;
 
@@ -7,8 +7,10 @@ public class ReadyToGuessHandler : IClientCommandHandler
 {
     public Task Handle(GameClient client, byte[] payload)
     {
-        var mask = GuessCommandHelper.Decode<string>(Command.ReadyToGuess, payload);
-        ConsoleUi.Info($"Mask: {mask}");
+        client.Mask = GuessCommandHelper.Decode<string>(Command.ReadyToGuess, payload);
+        client.AttemptsLeft = 5;
+        client.State = ClientState.Guessing;
+        client.Write($"Слово загадано: {client.Mask}. Попыток: 5.");
         return Task.CompletedTask;
     }
 }
@@ -18,8 +20,9 @@ public class GuessResultHandler : IClientCommandHandler
 {
     public Task Handle(GameClient client, byte[] payload)
     {
-        var result = GuessCommandHelper.Decode<string>(Command.GuessResult, payload);
-        ConsoleUi.Info($"Guess result: {result}");
+        client.Mask = GuessCommandHelper.Decode<string>(Command.GuessResult, payload);
+        client.Pending = null;
+        client.Write($"Маска: {client.Mask}");
         return Task.CompletedTask;
     }
 }
@@ -29,8 +32,7 @@ public class WinHandler : IClientCommandHandler
 {
     public Task Handle(GameClient client, byte[] payload)
     {
-        var word = GuessCommandHelper.Decode<string>(Command.Win, payload);
-        ConsoleUi.Success($"🎉 You win! Word: {word}");
+        client.Write($"Слово отгадано: {GuessCommandHelper.Decode<string>(Command.Win, payload)}");
         return Task.CompletedTask;
     }
 }
@@ -40,8 +42,11 @@ public class EndHandler : IClientCommandHandler
 {
     public Task Handle(GameClient client, byte[] payload)
     {
-        ConsoleUi.Success("🏁 Game finished!");
-        client.Running = false;
+        client.State = ClientState.Finished;
+        client.SessionId = null;
+        client.Role = null;
+        client.Pending = null;
+        client.Write("Сессия завершена.");
         return Task.CompletedTask;
     }
 }

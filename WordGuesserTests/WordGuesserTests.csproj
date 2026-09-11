@@ -21,6 +21,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\WordGuesserClient\WordGuesserClient.csproj" />
       <ProjectReference Include="..\WordGuesser.Protocol\WordGuesser.Protocol.csproj" />
       <ProjectReference Include="..\WordGuesserServer\WordGuesserServer.csproj" />
     </ItemGroup>

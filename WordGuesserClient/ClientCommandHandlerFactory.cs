@@ -23,7 +23,7 @@ public class ClientCommandHandlerFactory
             if (attr == null) continue;
 
             var handler = (IClientCommandHandler)Activator.CreateInstance(type)!;
-            map[attr.Command] = handler;
+            map.Add(attr.Command, handler);
         }
 
         return map;
