@@ -1,5 +1,4 @@
 ﻿using WordGuesser.Protocol;
-using System.Collections.Concurrent;
 using System.Net.Sockets;
 
 namespace WordGuesserServer;
@@ -7,18 +6,14 @@ namespace WordGuesserServer;
 [Command(Command.Create)]
 public class CreateCommandHandler : ICommandHandler
 {
-    public async Task Invoke(Socket sender, ConcurrentDictionary<Guid, GameSession> gameSessions, byte[]? payload = null, CancellationToken ct = default)
+    public async Task Invoke(Socket sender, GameSessionRegistry gameSessions, byte[]? payload = null, CancellationToken ct = default)
     {
-        var session = new GameSession
+        var response = gameSessions.TryCreate(sender, out var session);
+        if (response != CommandResponse.Ok)
         {
-            Hosted = new Player
-            {
-                Connector = sender
-            },
-            Id = Guid.NewGuid()
-        };
-        gameSessions.TryAdd(session.Id, session);
-        
-        await sender.SendSessionId(session.Id);
+            await sender.SendResponseCommand(response, ct);
+            return;
+        }
+        await sender.SendSessionId(session!.Id, ct);
     }
 }

@@ -7,5 +7,7 @@ public enum CommandResponse
     IncorrectSender,
     CommandIncorrect,
     PackageIncorrect,
-    SessionNotFound
+    SessionNotFound,
+    AlreadyInSession,
+    SessionFull
 }

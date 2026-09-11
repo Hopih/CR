@@ -1,5 +1,4 @@
 ﻿using WordGuesser.Protocol;
-using System.Collections.Concurrent;
 using System.Net.Sockets;
 
 namespace WordGuesserServer;
@@ -7,27 +6,22 @@ namespace WordGuesserServer;
 [Command(Command.Join)]
 public class JoinCommandHandler :  ICommandHandler
 {
-    public async Task Invoke(Socket sender, ConcurrentDictionary<Guid, GameSession> gameSessions, byte[]? payload = null, CancellationToken ct = default)
+    public async Task Invoke(Socket sender, GameSessionRegistry gameSessions, byte[]? payload = null, CancellationToken ct = default)
     {
         var sessionId = GuessCommandHelper.Decode<Guid>(Command.Join, payload!);
 
-        if (!gameSessions.TryGetValue(sessionId, out var gameSession))
+        var response = gameSessions.TryJoin(sessionId, sender, out var gameSession);
+        if (response != CommandResponse.Ok)
         {
-            await sender.SendSessionNotFound();
+            await sender.SendResponseCommand(response, ct);
             return;
         }
 
-        gameSession.Player = new Player()
-        {
-            Connector = sender,
-            Role = PlayerRole.Guesser
-        };
-        gameSession.Hosted.Role = PlayerRole.Hosted;
-        
+        await sender.SendSessionId(sessionId, ct);
         await sender.SendPacketAsync(GuessCommandHelper.Ready(PlayerRole.Guesser),
             ct);
         
-        await gameSession.Hosted.Connector.SendPacketAsync(GuessCommandHelper.Ready(PlayerRole.Hosted),
+        await gameSession!.Hosted.Connector.SendPacketAsync(GuessCommandHelper.Ready(PlayerRole.Hosted),
             ct);
     }
 }

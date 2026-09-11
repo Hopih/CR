@@ -1,5 +1,4 @@
 using WordGuesser.Protocol;
-using System.Collections.Concurrent;
 using System.Net.Sockets;
 using System.Text;
 
@@ -10,18 +9,18 @@ public class GuessCommandHandler : ICommandHandler
 {
         public async Task Invoke(
         Socket sender,
-        ConcurrentDictionary<Guid, GameSession> sessions,
+        GameSessionRegistry sessions,
         byte[]? payload = null,
         CancellationToken ct = default)
     {
         var (sessionId, attempt) = GuessCommandHelper.DecodeSessionWithData(Command.Guess, payload!);
-        var sessionCheck = await sessions.CheckSessionById(sessionId, sender);
+        var sessionCheck = await sessions.CheckSessionById(sessionId, sender, ct);
         if (!sessionCheck.HasSession)
             return;
 
         var session = sessionCheck.Session!;
-        if (!await session.CheckSessionHost(sender) ||
-            !await session.CheckPlayer(sender))
+        if (!await session.CheckSessionHost(sender, ct) ||
+            !await session.CheckPlayer(sender, ct))
         {
             return;
         }
@@ -29,7 +28,7 @@ public class GuessCommandHandler : ICommandHandler
         // Игровое состояние
         if (session.GuessedWord == null)
         {
-            await sender.SendIncorrectSender(); // слово не задано
+            await sender.SendIncorrectSender(ct); // слово не задано
             return;
         }
 
@@ -63,10 +62,8 @@ public class GuessCommandHandler : ICommandHandler
         }
         else if (session.TryCount <= 0)
         {
-            await session.Player.Connector.SendPacketAsync(
-                GuessCommandHelper.End(), ct);
-            await session.Hosted.Connector.SendPacketAsync(
-                GuessCommandHelper.End(), ct);
+            await sessions.EndAsync(session, ct: ct);
+            return;
         }
         else
         {
@@ -77,7 +74,7 @@ public class GuessCommandHandler : ICommandHandler
                 GuessCommandHelper.Result(mask), ct);
         }
 
-        await sender.SendOk();
+        await sender.SendOk(ct);
     }
 
 }

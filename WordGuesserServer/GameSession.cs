@@ -4,6 +4,7 @@ namespace WordGuesserServer;
 
 public class GameSession
 {
+    internal SemaphoreSlim Gate { get; } = new(1, 1);
     public required Guid Id { get; set; }
     public Player? Player { get; set; }
     public required Player Hosted { get; set; }

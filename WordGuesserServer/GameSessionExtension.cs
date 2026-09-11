@@ -1,43 +1,43 @@
-﻿using System.Collections.Concurrent;
-using System.Net.Sockets;
+﻿using System.Net.Sockets;
 
 namespace WordGuesserServer;
 
 public static class GameSessionExtension
 {
-    public static async Task<(bool HasSession, GameSession? Session)> CheckSessionById(this ConcurrentDictionary<Guid, GameSession> gameSessions,
-        Guid sessionId, Socket sender)
+    public static async Task<(bool HasSession, GameSession? Session)> CheckSessionById(this GameSessionRegistry gameSessions,
+        Guid sessionId, Socket sender, CancellationToken ct = default)
     {
-        if (gameSessions.TryGetValue(sessionId, out var gameSession))
+        var gameSession = gameSessions.Find(sessionId);
+        if (gameSession != null)
         {
             return (true,  gameSession);
         }
 
-        await sender.SendSessionNotFound();
+        await sender.SendSessionNotFound(ct);
         
         return (false, null);
     }
 
-    public static async Task<bool> CheckSessionHost(this GameSession gameSession, Socket sender)
+    public static async Task<bool> CheckSessionHost(this GameSession gameSession, Socket sender, CancellationToken ct = default)
     {
         if (gameSession.Hosted.Connector.Equals(sender))
         {
             return true;
         }
 
-        await sender.SendIncorrectSender();
+        await sender.SendIncorrectSender(ct);
         
         return false;
     }
 
-    public static async Task<bool> CheckPlayer(this GameSession gameSession, Socket sender)
+    public static async Task<bool> CheckPlayer(this GameSession gameSession, Socket sender, CancellationToken ct = default)
     {
         if (gameSession.Player != null)
         {
             return true;
         }
 
-        await sender.SendPlayerNotJoined();
+        await sender.SendPlayerNotJoined(ct);
         
         return false;
     }

@@ -1,5 +1,4 @@
 using WordGuesser.Protocol;
-using System.Collections.Concurrent;
 using System.Net.Sockets;
 
 namespace WordGuesserServer;
@@ -9,20 +8,19 @@ public class SwapCommandHandler : ICommandHandler
 {
     public async Task Invoke(
         Socket sender,
-        ConcurrentDictionary<Guid, GameSession> sessions,
+        GameSessionRegistry sessions,
         byte[]? payload = null,
         CancellationToken ct = default)
     {
-        var session = sessions.Values.FirstOrDefault(s =>
-            s.Hosted.Connector.Equals(sender) || (s.Player?.Connector.Equals(sender) ?? false));
+        var session = sessions.FindByPlayer(sender);
 
         if (session == null)
         {
-            await sender.SendSessionNotFound();
+            await sender.SendSessionNotFound(ct);
             return;
         }
 
-        if (!await session.CheckPlayer(sender))
+        if (!await session.CheckPlayer(sender, ct))
         {
             return;
         }
@@ -30,9 +28,7 @@ public class SwapCommandHandler : ICommandHandler
         // Проверяем, не завершён ли матч
         if (session.Hosted.WinCount >= 3 || session.Player!.WinCount >= 3)
         {
-            await session.Hosted.Connector.SendPacketAsync(GuessCommandHelper.End(), ct);
-            await session.Player!.Connector.SendPacketAsync(GuessCommandHelper.End(), ct);
-            sessions.TryRemove(session.Id, out _);
+            await sessions.EndAsync(session, ct: ct);
             return;
         }
 
@@ -49,7 +45,7 @@ public class SwapCommandHandler : ICommandHandler
         await session.Player.Connector.SendPacketAsync(
             GuessCommandHelper.Ready(PlayerRole.Guesser), ct);
 
-        await session.Hosted.Connector.SendOk();
-        await session.Player.Connector.SendOk();
+        await session.Hosted.Connector.SendOk(ct);
+        await session.Player.Connector.SendOk(ct);
     }
 }

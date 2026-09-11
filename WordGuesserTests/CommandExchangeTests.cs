@@ -1,5 +1,4 @@
 using WordGuesser.Protocol;
-using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 using WordGuesserServer;
@@ -65,14 +64,17 @@ public class CommandExchangeTests
         using var host = await SocketPair.Connect();
         using var guest = await SocketPair.Connect();
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-        var id = Guid.NewGuid();
-        var sessions = new ConcurrentDictionary<Guid, GameSession>();
-        sessions[id] = new GameSession { Id = id, Hosted = new Player { Connector = host.Server } };
+        var sessions = new GameSessionRegistry();
+        Assert.Equal(CommandResponse.Ok, sessions.TryCreate(host.Server, out var session));
+        var id = session!.Id;
         var join = GuessPackageParser.TryParse(GuessCommandHelper.Join(id), out _)!.Value;
 
-        await new JoinCommandHandler().Invoke(guest.Server, sessions, join.Payload, timeout.Token);
+        await sessions.ExecuteAsync(Command.Join, guest.Server, join.Payload, timeout.Token);
 
         var hostReady = await ReceivePacket(host.Client, timeout.Token);
+        var guestSession = await ReceivePacket(guest.Client, timeout.Token);
+        Assert.Equal(Command.SessionId, guestSession.Command);
+        Assert.Equal(id, GuessCommandHelper.Decode<Guid>(guestSession.Command, guestSession.Payload));
         var guestReady = await ReceivePacket(guest.Client, timeout.Token);
         Assert.Equal(Command.Ready, hostReady.Command);
         Assert.Equal(Command.Ready, guestReady.Command);

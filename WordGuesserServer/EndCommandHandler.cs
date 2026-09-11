@@ -1,5 +1,4 @@
 using WordGuesser.Protocol;
-using System.Collections.Concurrent;
 using System.Net.Sockets;
 
 namespace WordGuesserServer;
@@ -9,26 +8,18 @@ public class EndCommandHandler: ICommandHandler
 {
     public async Task Invoke(
         Socket sender,
-        ConcurrentDictionary<Guid, GameSession> sessions,
+        GameSessionRegistry sessions,
         byte[]? payload = null,
         CancellationToken ct = default)
     {
-        var session = sessions.Values.FirstOrDefault(s =>
-            s.Hosted.Connector.Equals(sender) || (s.Player?.Connector.Equals(sender) ?? false));
+        var session = sessions.FindByPlayer(sender);
 
         if (session == null)
         {
-            await sender.SendSessionNotFound();
+            await sender.SendSessionNotFound(ct);
             return;
         }
 
-        await session.Hosted.Connector.SendPacketAsync(
-            GuessCommandHelper.End(), ct);
-
-        if (session.Player != null)
-            await session.Player.Connector.SendPacketAsync(
-                GuessCommandHelper.End(), ct);
-
-        sessions.TryRemove(session.Id, out _);
+        await sessions.EndAsync(session, ct: ct);
     }
 }
