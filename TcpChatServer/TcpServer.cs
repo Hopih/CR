@@ -161,7 +161,7 @@ public class TcpServer
                             {
                                 await BroadcastMessageAsync(socket, p, ctxSource.Token);
                             }
-                            catch (Exception e)
+                            catch
                             {
                                 /* ignored */
                             }

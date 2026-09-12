@@ -155,6 +155,7 @@ public class DbContext
                     Id = reader.GetInt64("us.id"),
                     Email = reader.GetString("us.email"),
                     FullName = reader.GetString("us.full_name"),
+                    Password = reader.GetString("us.password"),
                     News = new List<News>
                     {
                         new News

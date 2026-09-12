@@ -35,6 +35,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LongPoolingExample", "LongP
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WordGuesser.Protocol", "WordGuesser.Protocol\WordGuesser.Protocol.csproj", "{487E2B8A-14B7-43A4-B3FA-1AE415AC4A57}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleUdpServer", "SimpleUdpServer\SimpleUdpServer.csproj", "{E3BAAB3C-1D2B-4D41-BD4F-4EE989E55756}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleUdpClient", "SimpleUdpClient\SimpleUdpClient.csproj", "{7B0795DE-D36C-4649-8847-40C6BDB589D1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -105,6 +109,14 @@ Global
 		{487E2B8A-14B7-43A4-B3FA-1AE415AC4A57}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{487E2B8A-14B7-43A4-B3FA-1AE415AC4A57}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{487E2B8A-14B7-43A4-B3FA-1AE415AC4A57}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E3BAAB3C-1D2B-4D41-BD4F-4EE989E55756}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E3BAAB3C-1D2B-4D41-BD4F-4EE989E55756}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E3BAAB3C-1D2B-4D41-BD4F-4EE989E55756}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E3BAAB3C-1D2B-4D41-BD4F-4EE989E55756}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7B0795DE-D36C-4649-8847-40C6BDB589D1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7B0795DE-D36C-4649-8847-40C6BDB589D1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7B0795DE-D36C-4649-8847-40C6BDB589D1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7B0795DE-D36C-4649-8847-40C6BDB589D1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -72,7 +72,7 @@ internal sealed class TcpServer : IDisposable
 
                 if (message.IsClosedMessage)
                 {
-                    _clients.Remove(message.Autor);
+                    _clients.Remove(message.Autor!);
                     return;
                 }
 
