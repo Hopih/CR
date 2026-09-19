@@ -22,7 +22,7 @@ public class QuotesApiClient
 
     public async Task<QuotesApiResponse> GetRandomQuoteAsync(CancellationToken cancellationToken)
     {
-        var result = await HttpClient.GetFromJsonAsync<List<QuotesApiResponse>>("/v1/quotes", 
+        var result = await HttpClient.GetFromJsonAsync<List<QuotesApiResponse>>("/v2/randomquotes", 
             _globalJsonOptions, cancellationToken: cancellationToken);
         
         return result == null 

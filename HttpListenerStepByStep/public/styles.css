@@ -1,0 +1,152 @@
+header,
+footer {
+    width: 100%;
+    height: 5%;
+    /* Устанавливаем высоту для html и body */
+    display: flex;
+    /* Включаем Flexbox */
+    justify-content: center;
+    /* Центрируем по горизонтали */
+    align-items: center;
+    /* Центрируем по вертикали */
+    margin: auto;
+}
+
+html,
+body {
+    margin: 0;
+    /* Убираем отступы */
+    padding: 0;
+    /* Убираем внутренние отступы */
+    height: 100%;
+    /* Задаем высоту 100% */
+}
+
+hr {
+    margin: auto;
+}
+
+
+h1,
+h2 {
+    margin: auto;
+}
+
+h2 {
+    font-size: calc(12px + 16 * ((100vw - 320px) / (1280 - 320)));
+}
+
+header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+    background-color: rgba(216, 166, 104, 0.673);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);   
+}
+
+footer {
+    background-color: #69969f;
+}
+
+main {
+    width: 100%;
+    height: 100%;
+    margin: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.board {
+    width: 100%;
+    height: 100%;
+    margin: auto;
+    box-sizing: border-box;
+    background-color: #fff;
+    background-image:
+        linear-gradient(90deg, transparent 4.9em, #abced4 4.9em, #abced4 5.1em, transparent 5.1em),
+        linear-gradient(#eee .1em, transparent .1em);
+    background-size: 100% 1.2em;
+    position: relative;
+}
+
+.toolbar {
+    position: fixed;
+    bottom: 10%;
+    right: 45%;
+    width: 10%;
+    max-width: 800px;
+    height: auto;
+    z-index: 1000;
+    background-color: #f9f9f9;
+    padding: 1vh;
+    border-radius: 15px;
+    border: 2px solid black;
+
+    display: flex; /* Включаем Flexbox */
+    justify-content: space-between; /* Равномерное распределение элементов */
+    align-items: baseline; /* Вертикальное центрирование элементов */
+}
+
+.toolbar-button {
+    background: none;
+    /* Убираем фон кнопки */
+    border: none;
+    /* Убираем рамку кнопки */
+    cursor: pointer;
+    /* Курсор при наведении */
+    outline: none;
+}
+
+.toolbar-button img {
+    width: 3vw;
+    /* Ширина изображения кнопки */
+    height: auto;
+    /* Автоматическая высота для сохранения пропорций */
+}
+
+.sticker {
+    width: 200px;
+    height: 200px;
+    background-color: #ffe58a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 10px;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 3px 3px 5px rgba(0, 0, 0, 0.4); /* Параметры тени */
+    position: absolute;
+    word-break: break-word; /* Переносит длинные слова */
+}
+.input {
+    width: 100%;
+    height: 100%;
+    resize: none;
+    overflow: hidden;
+    background-color: inherit;
+    font-family: inherit;
+    font-size: inherit;
+    color: inherit;
+    outline: none;
+    padding: inherit; /* Совпадает с .sticker */
+    text-align: inherit;
+    line-height: 1.2;
+    border: none;
+    display: inherit; /* Центрируем содержимое */
+    align-items: inherit;
+    justify-content: inherit;
+    word-break: inherit; /* Переносит длинные слова */
+    cursor: text; /* Курсор для выделения текста */
+}
+
+.resize-handle {
+    width: 10px;
+    height: 10px;
+    background-color: gray;
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    cursor: nwse-resize;
+}
