@@ -1,0 +1,88 @@
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+    font-family: Arial, sans-serif;
+    display: grid;
+    grid-template-rows: 48px minmax(0, 1fr) 40px;
+}
+header, footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+header { background: #d8a668; }
+footer { background: #69969f; }
+h2 { margin: 0; font-size: clamp(16px, 2.5vw, 28px); }
+main { min-height: 0; min-width: 0; }
+.board {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    overflow: auto;
+    background-color: white;
+    background-image: linear-gradient(#eee 1px, transparent 1px);
+    background-size: 100% 24px;
+}
+.toolbar {
+    position: fixed;
+    bottom: 56px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 12px;
+    z-index: 1000;
+    padding: 8px;
+    border: 2px solid black;
+    border-radius: 15px;
+    background: #f9f9f9;
+}
+.toolbar-button {
+    border: none;
+    background: none;
+    cursor: pointer;
+}
+.toolbar-button:disabled { opacity: .5; cursor: default; }
+.toolbar-button img { width: 36px; height: 36px; }
+.sticker {
+    position: absolute;
+    box-sizing: border-box;
+    min-width: 80px;
+    min-height: 80px;
+    padding: 12px;
+    border-radius: 10px;
+    background: #ffe58a;
+    box-shadow: 3px 3px 5px #0006;
+    overflow: hidden;
+    cursor: grab;
+}
+.sticker-text, .input {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    border: none;
+    font-family: inherit;
+    font-size: 20px;
+    line-height: 1.2;
+    color: inherit;
+    text-align: center;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    overflow: auto;
+}
+.input {
+    display: block;
+    resize: none;
+    background: inherit;
+    cursor: text;
+}
+.resize-handle {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 12px;
+    height: 12px;
+    background: gray;
+    cursor: nwse-resize;
+}

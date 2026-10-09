@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Учебная доска</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header><h2>Учебная доска</h2></header>
+    <main>
+        <div class="board" id="board" aria-label="Доска"></div>
+    </main>
+    <div class="toolbar">
+        <button id="addSticker" class="toolbar-button"
+                type="button" aria-label="Добавить стикер">
+            <img src="sticker.svg" alt="">
+        </button>
+        <button id="addText" class="toolbar-button" type="button"
+                disabled title="Отдельный тип текста добавим позже">
+            <img src="text.svg" alt="Текст">
+        </button>
+    </div>
+    <footer><h2>HttpListenerStepByStep</h2></footer>
+    <script type="module" src="/js/main.js"></script>
+</body>
+</html>

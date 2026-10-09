@@ -11,9 +11,7 @@ function adjustHeadersFontSize() {
 async function createSticker() {
     const sticker = document.createElement('div');
     sticker.className = 'sticker';
-    sticker.innerHTML = `Text`;
-
-
+    
     let quoteResponse = await fetch("/quote/random", {
         method: "GET"
     });
@@ -21,6 +19,9 @@ async function createSticker() {
     if(quoteResponse.ok) {
         let response = await quoteResponse.json();
         sticker.innerHTML = `${response.quote} (c) ${response.author}`;
+    }
+    else{
+        sticker.innerHTML = 'Input text here...';
     }
     
     const board = document.getElementById('board');

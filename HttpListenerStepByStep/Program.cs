@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using System.Text;
 using System.Text.Json;
+using CodeJam;
 using HttpListenerStepByStep;
 
 using var httpListener = new HttpListener();
@@ -13,24 +14,36 @@ while (httpListener.IsListening)
     var context = await httpListener.GetContextAsync();
     _ = Task.Run(async () =>
     {
-        if (context.Request.Url?.LocalPath == "/quote/random")
+        try
         {
-            var result = await quotesClient.GetRandomQuoteAsync(CancellationToken.None);
-            context.Response.ContentType = "application/json; charset=utf-8";
-            context.Response.StatusCode = 200;
-            await context.Response.OutputStream.WriteAsync(
-                Encoding.UTF8.GetBytes(JsonSerializer.Serialize(result, new JsonSerializerOptions()
-                {
-                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-                })));
-
+            if (context.Request.Url?.LocalPath == "/quote/random")
+            {
+                var result = await quotesClient.GetRandomQuoteAsync(CancellationToken.None);
+                context.Response.ContentType = "application/json; charset=utf-8";
+                context.Response.StatusCode = 200;
+                await context.Response.OutputStream.WriteAsync(
+                    Encoding.UTF8.GetBytes(JsonSerializer.Serialize(result, new JsonSerializerOptions()
+                    {
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                    })));
+            }
+            else
+            {
+                await ShowStatic(context);
+            }
         }
-        else
+        catch (Exception ex)
         {
-            await ShowStatic(context);
+            context.Response.ContentType = "text/html; charset=utf-8";
+            context.Response.StatusCode = 500;
+            //await context.Response.OutputStream.WriteAsync(data from 500.html file)
+            await context.Response.OutputStream.WriteAsync(Encoding.UTF8.GetBytes($"Произошли технические шоколадки! {ex.ToDiagnosticString()}"));
         }
-        context.Response.OutputStream.Close();
-        context.Response.Close();
+        finally
+        {
+            context.Response.Close();
+        }
+        
     });
 }
 
