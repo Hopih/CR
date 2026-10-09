@@ -1,152 +1,143 @@
-header,
-footer {
-    width: 100%;
-    height: 5%;
-    /* Устанавливаем высоту для html и body */
-    display: flex;
-    /* Включаем Flexbox */
-    justify-content: center;
-    /* Центрируем по горизонтали */
-    align-items: center;
-    /* Центрируем по вертикали */
-    margin: auto;
-}
-
-html,
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
 body {
-    margin: 0;
-    /* Убираем отступы */
-    padding: 0;
-    /* Убираем внутренние отступы */
-    height: 100%;
-    /* Задаем высоту 100% */
+    font-family: Arial, sans-serif;
+    display: grid;
+    grid-template-rows: 48px minmax(0, 1fr) 40px;
 }
-
-hr {
-    margin: auto;
-}
-
-
-h1,
-h2 {
-    margin: auto;
-}
-
-h2 {
-    font-size: calc(12px + 16 * ((100vw - 320px) / (1280 - 320)));
-}
-
-header {
-    position: fixed;
-    top: 0;
-    left: 0;
-    z-index: 1000;
-    background-color: rgba(216, 166, 104, 0.673);
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);   
-}
-
-footer {
-    background-color: #69969f;
-}
-
-main {
-    width: 100%;
-    height: 100%;
-    margin: auto;
+header, footer {
     display: flex;
-    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
-
+header { background: #d8a668; }
+footer { background: #69969f; }
+h2 { margin: 0; font-size: clamp(16px, 2.5vw, 28px); }
+main { min-height: 0; min-width: 0; }
 .board {
+    position: relative;
     width: 100%;
     height: 100%;
-    margin: auto;
-    box-sizing: border-box;
-    background-color: #fff;
-    background-image:
-        linear-gradient(90deg, transparent 4.9em, #abced4 4.9em, #abced4 5.1em, transparent 5.1em),
-        linear-gradient(#eee .1em, transparent .1em);
-    background-size: 100% 1.2em;
-    position: relative;
+    padding: 0;
+    overflow: auto;
+    background-color: white;
+    background-image: linear-gradient(#eee 1px, transparent 1px);
+    background-size: 100% 24px;
 }
-
 .toolbar {
     position: fixed;
-    bottom: 10%;
-    right: 45%;
-    width: 10%;
-    max-width: 800px;
-    height: auto;
-    z-index: 1000;
-    background-color: #f9f9f9;
-    padding: 1vh;
-    border-radius: 15px;
-    border: 2px solid black;
-
-    display: flex; /* Включаем Flexbox */
-    justify-content: space-between; /* Равномерное распределение элементов */
-    align-items: baseline; /* Вертикальное центрирование элементов */
-}
-
-.toolbar-button {
-    background: none;
-    /* Убираем фон кнопки */
-    border: none;
-    /* Убираем рамку кнопки */
-    cursor: pointer;
-    /* Курсор при наведении */
-    outline: none;
-}
-
-.toolbar-button img {
-    width: 3vw;
-    /* Ширина изображения кнопки */
-    height: auto;
-    /* Автоматическая высота для сохранения пропорций */
-}
-
-.sticker {
-    width: 200px;
-    height: 200px;
-    background-color: #ffe58a;
+    bottom: 56px;
+    left: 50%;
+    transform: translateX(-50%);
     display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 10px;
-    border-radius: 10px;
-    overflow: hidden;
-    box-shadow: 3px 3px 5px rgba(0, 0, 0, 0.4); /* Параметры тени */
-    position: absolute;
-    word-break: break-word; /* Переносит длинные слова */
+    gap: 12px;
+    z-index: 1000;
+    padding: 8px;
+    border: 2px solid black;
+    border-radius: 15px;
+    background: #f9f9f9;
 }
-.input {
+.toolbar-button {
+    border: none;
+    background: none;
+    cursor: pointer;
+}
+.toolbar-button:disabled { opacity: .5; cursor: default; }
+.toolbar-button img { width: 36px; height: 36px; }
+.sticker {
+    position: absolute;
+    box-sizing: border-box;
+    min-width: 80px;
+    min-height: 80px;
+    padding: 12px;
+    border-radius: 10px;
+    background: #ffe58a;
+    box-shadow: 3px 3px 5px #0006;
+    overflow: hidden;
+    cursor: grab;
+}
+.sticker-text, .input {
     width: 100%;
     height: 100%;
-    resize: none;
-    overflow: hidden;
-    background-color: inherit;
-    font-family: inherit;
-    font-size: inherit;
-    color: inherit;
-    outline: none;
-    padding: inherit; /* Совпадает с .sticker */
-    text-align: inherit;
-    line-height: 1.2;
+    margin: 0;
+    padding: 0;
     border: none;
-    display: inherit; /* Центрируем содержимое */
-    align-items: inherit;
-    justify-content: inherit;
-    word-break: inherit; /* Переносит длинные слова */
-    cursor: text; /* Курсор для выделения текста */
+    font-family: inherit;
+    font-size: 20px;
+    line-height: 1.2;
+    color: inherit;
+    text-align: center;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    overflow: auto;
 }
-
+.input {
+    display: block;
+    resize: none;
+    background: inherit;
+    cursor: text;
+}
 .resize-handle {
-    width: 10px;
-    height: 10px;
-    background-color: gray;
     position: absolute;
     bottom: 0;
     right: 0;
+    width: 12px;
+    height: 12px;
+    background: gray;
     cursor: nwse-resize;
 }
+
+.sticker-delete {
+    position: absolute;
+    right: 5px;
+    top: 3px;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    font-size: 20px;
+}
+.sticker[data-busy="true"] { opacity: .65; cursor: wait; }
+.sticker[data-busy="true"] .resize-handle { cursor: wait; }
+.board-status { font-size: 14px; }
+
+
+body { grid-template-rows: auto minmax(0, 1fr) auto; }
+header { flex-wrap: wrap; gap: 8px; padding: 8px 12px; }
+header h2 { margin-right: 8px; }
+header select { max-width: 240px; }
+footer { min-height: 40px; padding: 8px 12px; text-align: center; }
+
+.board-popup {
+    width: min(380px, calc(100vw - 32px));
+    padding: 24px;
+    border: 0;
+    border-radius: 16px;
+    color: #202b30;
+    box-shadow: 0 16px 60px #0004;
+}
+.board-popup::backdrop { background: #18232966; }
+.board-popup h3 { margin: 0 0 18px; font-size: 21px; }
+.popup-description { margin: 0 0 18px; line-height: 1.5; }
+.popup-field label { display: block; margin-bottom: 8px; font-size: 14px; }
+.popup-field input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #a8b7bc;
+    border-radius: 8px;
+    font: inherit;
+}
+.popup-field input:focus-visible { outline: 2px solid #397583; outline-offset: 2px; }
+.popup-field input[aria-invalid="true"] { border-color: #b22f38; }
+.popup-error { margin: 10px 0 0; color: #b22f38; font-size: 14px; }
+.popup-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 24px; }
+.popup-actions button {
+    padding: 9px 16px;
+    border: 0;
+    border-radius: 8px;
+    font: inherit;
+    cursor: pointer;
+}
+.popup-cancel { background: #edf1f2; color: #263b42; }
+.popup-submit { background: #397583; color: white; }
+.popup-submit.popup-danger { background: #b22f38; }
+.popup-actions button:focus-visible { outline: 2px solid #397583; outline-offset: 3px; }

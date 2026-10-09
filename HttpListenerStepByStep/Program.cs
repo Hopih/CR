@@ -3,11 +3,21 @@ using System.Text;
 using System.Text.Json;
 using CodeJam;
 using HttpListenerStepByStep;
+using HttpListenerStepByStep.Data;
+using HttpListenerStepByStep.Http;
 
 using var httpListener = new HttpListener();
+
+var connectionString = Environment.GetEnvironmentVariable("BOARD_DB_CONNECTION")
+    ?? "Host=localhost;Port=5432;Database=my_miro;Username=postgres;Password=postgres";
+var boardRepository = new BoardRepository(connectionString);
+var stickerRepository = new StickerRepository(connectionString);
+var boardApi = new BoardApiHandler(boardRepository, stickerRepository);
+var quotesClient = new QuotesApiClient();
+
 httpListener.Prefixes.Add("http://localhost:5000/");
 httpListener.Start();
-var quotesClient = new QuotesApiClient();
+
 
 while (httpListener.IsListening)
 {
@@ -16,7 +26,13 @@ while (httpListener.IsListening)
     {
         try
         {
-            if (context.Request.Url?.LocalPath == "/quote/random")
+            var path = context.Request.Url?.AbsolutePath ?? "/";
+            if (path == "/api" || path.StartsWith("/api/", StringComparison.Ordinal))
+            {
+                await boardApi.HandleAsync(context, CancellationToken.None);
+            }
+            
+            else if (path == "/quote/random")
             {
                 var result = await quotesClient.GetRandomQuoteAsync(CancellationToken.None);
                 context.Response.ContentType = "application/json; charset=utf-8";
@@ -34,10 +50,17 @@ while (httpListener.IsListening)
         }
         catch (Exception ex)
         {
-            context.Response.ContentType = "text/html; charset=utf-8";
-            context.Response.StatusCode = 500;
-            //await context.Response.OutputStream.WriteAsync(data from 500.html file)
-            await context.Response.OutputStream.WriteAsync(Encoding.UTF8.GetBytes($"Произошли технические шоколадки! {ex.ToDiagnosticString()}"));
+            Console.Error.WriteLine(ex.ToDiagnosticString());
+            // Ошибка записи клиенту тоже возможна, если он закрыл соединение.
+            try
+            {
+                await ApiSupport.WriteAsync(context.Response, 500,
+                    new { error = new { code = "server_error", message = "Ошибка сервера" } });
+            }
+            catch (Exception writeError)
+            {
+                Console.Error.WriteLine(writeError.Message);
+            }
         }
         finally
         {
@@ -54,19 +77,26 @@ return;
 
 async Task ShowStatic(HttpListenerContext context, CancellationToken ctx = default)
 {
-    var localPath = context.Request.Url?.LocalPath.TrimStart('/') ?? "";
-    if (string.IsNullOrEmpty(localPath) || localPath == "index")
-        localPath = "index.html";
-
-    var filePath = Path.Combine("public", localPath);
-    if (File.Exists(filePath))
+    var relative = context.Request.Url?.LocalPath.TrimStart('/') ?? "";
+    if (relative is "" or "index")
     {
-        await ShowFile(filePath, context, ctx);
+        relative = "index.html";
     }
-    else
+
+    var root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "public"));
+    var target = Path.GetFullPath(Path.Combine(root, relative));
+    var rootPrefix = root + Path.DirectorySeparatorChar;
+    
+    var comparison = OperatingSystem.IsWindows()
+        ? StringComparison.OrdinalIgnoreCase 
+        : StringComparison.Ordinal;
+    
+    if (!target.StartsWith(rootPrefix, comparison) || !File.Exists(target))
     {
         await Show404(context, ctx);
+        return;
     }
+    await ShowFile(target, context, ctx);
 }
     
 async Task Show404(HttpListenerContext context, CancellationToken ctx)

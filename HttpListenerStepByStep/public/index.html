@@ -1,28 +1,51 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <link rel="stylesheet" type="text/css" href="styles.css"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Учебная доска</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <header><h2>Hello to my Board</h2></header>
+    <header>
+        <h2 id="boardTitle">Учебная доска</h2>
+        <select id="boardSelect" aria-label="Выбрать доску"></select>
+        <button id="newBoard" type="button">Новая доска</button>
+        <button id="openBoard" type="button">Открыть по UUID</button>
+        <button id="deleteBoard" type="button">Удалить доску</button>
+        <button id="reloadBoard" type="button">Перечитать</button>
+    </header>
     <main>
-        <div class="board" id="board">
-            <!-- Здесь будут добавляться заметки -->
-            <div class="toolbar">
-                <button id="addSticker" class="toolbar-button">
-                    <img src="sticker.svg" alt="Стикер" />
-                </button>
-                <button id="addText" class="toolbar-button">
-                    <img src="text.svg" alt="Текст" />
-                </button>
-            </div>
-        </div>
-        
+        <div class="board" id="board" aria-label="Доска"></div>
     </main>
-    <footer><h2>About us</h2></footer>
-    <script src="script.js"></script> 
+    <div class="toolbar">
+        <button id="addSticker" class="toolbar-button"
+                type="button" aria-label="Добавить стикер">
+            <img src="sticker.svg" alt="">
+        </button>
+        <button id="addText" class="toolbar-button" type="button"
+                disabled title="Отдельный тип текста добавим позже">
+            <img src="text.svg" alt="Текст">
+        </button>
+    </div>
+    <footer><span id="boardStatus" class="board-status" role="status"></span></footer>
+    <dialog id="boardPopup" class="board-popup" aria-labelledby="popupTitle"
+            aria-describedby="popupDescription">
+        <form novalidate>
+            <h3 id="popupTitle"></h3>
+            <p id="popupDescription" class="popup-description"></p>
+            <div class="popup-field">
+                <label for="popupInput" id="popupLabel"></label>
+                <input id="popupInput" type="text" autocomplete="off"
+                       aria-describedby="popupError">
+            </div>
+            <p id="popupError" class="popup-error" role="alert" hidden></p>
+            <div class="popup-actions">
+                <button type="button" class="popup-cancel">Отмена</button>
+                <button type="submit" class="popup-submit"></button>
+            </div>
+        </form>
+    </dialog>
+    <script type="module" src="/js/main.js"></script>
 </body>
 </html>

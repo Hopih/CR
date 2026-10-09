@@ -9,8 +9,22 @@ $$
         RETURNING id INTO p_id;
     END;
 $$;
--- NULL занимает позицию OUT-параметра; результат CALL содержит p_id.
-CALL public.create_board('Доска занятия', NULL);
+-- Пример для ручной проверки (не создаём доску при применении скрипта):
+-- CALL public.create_board('Доска занятия', NULL);
+
+CREATE OR REPLACE PROCEDURE public.create_sticker(
+    IN p_board_id uuid, IN p_text varchar(2000),
+    IN p_x integer, IN p_y integer,
+    IN p_width integer, IN p_height integer,
+    OUT p_id uuid
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    INSERT INTO public.stickers(board_id, text, x, y, width, height)
+    VALUES (p_board_id, p_text, p_x, p_y, p_width, p_height)
+    RETURNING id INTO p_id;
+END;
+$$;
 
 CREATE OR REPLACE PROCEDURE public.update_sticker(
 IN p_board_id uuid, IN p_sticker_id uuid,
@@ -25,5 +39,28 @@ SET text = p_text, x = p_x, y = p_y,
     width = p_width, height = p_height
 WHERE s.id = p_sticker_id AND s.board_id = p_board_id;
 p_found := FOUND;
+END;
+$$;
+
+CREATE OR REPLACE PROCEDURE public.delete_sticker(
+    IN p_board_id uuid, IN p_sticker_id uuid,
+    OUT p_found boolean
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    DELETE FROM public.stickers AS s
+    WHERE s.id = p_sticker_id AND s.board_id = p_board_id;
+    p_found := FOUND;
+END;
+$$;
+
+CREATE OR REPLACE PROCEDURE public.delete_board(
+    IN p_board_id uuid, OUT p_found boolean
+)
+LANGUAGE plpgsql AS $$
+BEGIN
+    -- Стикеры удаляются внешним ключом ON DELETE CASCADE.
+    DELETE FROM public.boards AS b WHERE b.id = p_board_id;
+    p_found := FOUND;
 END;
 $$;
