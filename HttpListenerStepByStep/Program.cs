@@ -8,6 +8,7 @@ var origin = Environment.GetEnvironmentVariable("BOARD_ORIGIN")
 using var httpListener = new HttpListener();
 using var quotes = new QuotesApiClient();
 var router = RouterExtensions.CreateRouterAndMap(quotes);
+
 var processor = new RequestProcessor(router,
     new StaticFileHandler(Path.Combine(AppContext.BaseDirectory, "public")));
 

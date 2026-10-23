@@ -4,9 +4,9 @@ import * as storage from './board-storage.js';
 import { renderSticker } from './sticker-view.js';
 import { applyGeometry } from './interactions.js';
 import { fitText } from './typography.js';
-
 export function createBoardController(board, ui) {
     let boardModel = null;
+    let accountId = null;
     let busy = false;
     let operations = Promise.resolve();
     let pending = 0;
@@ -38,9 +38,9 @@ export function createBoardController(board, ui) {
         ui.add.disabled = value || !boardModel;
         ui.select.disabled = value || !boardModel;
         ui.removeBoard.disabled = value || !boardModel;
-        ui.newBoard.disabled = value;
-        ui.openBoard.disabled = value;
-        ui.reload.disabled = value;
+        ui.newBoard.disabled = value || !accountId;
+        ui.openBoard.disabled = value || !accountId;
+        ui.reload.disabled = value || !accountId;
         for (const element of views.values()) {
             element.dataset.busy = String(value);
             element.querySelectorAll('button').forEach(b => b.disabled = value);
@@ -88,7 +88,7 @@ export function createBoardController(board, ui) {
     }
 
     function attach(model) {
-        confirmed.set(model.id, { ...model });
+        confirmed.set(model.id, {...model});
         const element = renderSticker(board, model, saveChange, removeSticker);
         views.set(model.id, element);
         element.dataset.busy = String(busy);
@@ -96,23 +96,18 @@ export function createBoardController(board, ui) {
     }
 
     async function loadKnownBoard() {
-        const local = storage.readBoards();
-        const ids = [...new Set([
-            local.activeBoardId, ...local.boardIds
-        ].filter(Boolean))];
-        for (const id of ids) {
-            try {
-                showModel(await api.getBoard(id));
-                return;
-            } catch (error) {
-                if (error instanceof api.ApiError && error.status === 404) {
-                    storage.forgetBoard(id);
-                    continue;
-                }
-                throw error;
-            }
+        const items = await api.listMyBoards();
+        // Серверный список, а не UUID прежнего пользователя из localStorage.
+        for (const id of storage.readBoards().boardIds) storage.forgetBoard(id);
+        for (const item of items) storage.rememberBoard(item.id);
+        if (items.length) showModel(await api.getBoard(items[0].id));
+        else {
+            boardModel = null;
+            board.querySelectorAll('.sticker').forEach(e => e.remove());
+            views.clear();
+            confirmed.clear();
+            revisions.clear();
         }
-        showModel(await api.createBoard('Учебная доска'));
     }
 
     async function saveChange(snapshot) {
@@ -126,7 +121,7 @@ export function createBoardController(board, ui) {
             try {
                 await api.saveSticker(targetBoard.id, model.id,
                     toStickerPayload(snapshot));
-                confirmed.set(model.id, { ...snapshot });
+                confirmed.set(model.id, {...snapshot});
                 if (revisions.get(model.id) === revision) {
                     Object.assign(model, snapshot);
                     updateView(model);
@@ -188,7 +183,6 @@ export function createBoardController(board, ui) {
             status('Название должно содержать от 1 до 120 символов');
             return;
         }
-
         await run(async () => {
             showModel(await api.createBoard(name));
         });
@@ -203,8 +197,9 @@ export function createBoardController(board, ui) {
         if (!boardModel) return;
         await run(async () => {
             const id = boardModel.id;
-            try { await api.deleteBoard(id); }
-            catch (error) {
+            try {
+                await api.deleteBoard(id);
+            } catch (error) {
                 if (!(error instanceof api.ApiError && error.status === 404)) {
                     throw error;
                 }
@@ -219,11 +214,18 @@ export function createBoardController(board, ui) {
         });
     }
 
-    function reload() { return run(loadKnownBoard); }
+    function reload() {
+        return run(loadKnownBoard);
+    }
+
     lock(true);
     busy = false;
     return {
-        initialize: reload, reload, createSticker,
+        initialize: userId => {
+            accountId = userId;
+            return reload();
+        },
+        reload, createSticker,
         newBoard, openBoard, removeBoard
     };
 }

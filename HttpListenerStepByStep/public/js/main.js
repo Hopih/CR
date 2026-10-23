@@ -1,4 +1,4 @@
-import { initializeRegistrationUI } from './registration-ui.js';
+import { initializeUserHeader } from './user-header.js';
 import { createBoardController } from './board-controller.js';
 import { fitText } from './typography.js';
 import { createPopup } from './popup.js';
@@ -13,9 +13,12 @@ const ui = {
     title: document.getElementById('boardTitle'),
     status: document.getElementById('boardStatus')
 };
+
 const controller = createBoardController(board, ui);
 const openPopup = createPopup(document.getElementById('boardPopup'));
+
 ui.add.addEventListener('click', controller.createSticker);
+
 ui.newBoard.addEventListener('click', async () => {
     const title = await openPopup({
         title: 'Новая доска', label: 'Название доски',
@@ -25,7 +28,9 @@ ui.newBoard.addEventListener('click', async () => {
     });
     if (title !== null) await controller.newBoard(title);
 });
+
 ui.reload.addEventListener('click', controller.reload);
+
 ui.removeBoard.addEventListener('click', async () => {
     const accepted = await openPopup({
         title: 'Удалить доску?',
@@ -34,7 +39,9 @@ ui.removeBoard.addEventListener('click', async () => {
     });
     if (accepted) await controller.removeBoard();
 });
+
 ui.select.addEventListener('change', () => controller.openBoard(ui.select.value));
+
 ui.openBoard.addEventListener('click', async () => {
     const id = await openPopup({
         title: 'Открыть доску', label: 'UUID гостевой доски',
@@ -46,10 +53,21 @@ ui.openBoard.addEventListener('click', async () => {
     });
     if (id !== null) await controller.openBoard(id);
 });
+
 window.addEventListener('resize', () => {
     board.querySelectorAll('.sticker-text, .input').forEach(element => fitText(element));
 });
+let starting = true;
 
-initializeRegistrationUI();
-
-await controller.initialize();
+window.addEventListener('session-changed', () => { if (!starting) location.reload(); });
+try {
+    const session = await initializeUserHeader();
+    if (session) await controller.initialize(session.user.id);
+    else ui.status.textContent = 'Войдите, чтобы открыть свои доски';
+} 
+catch (ex) {
+    ui.status.textContent = ex.message; 
+}
+finally {
+    starting = false;
+}
