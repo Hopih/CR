@@ -1,7 +1,7 @@
+import { initializeRegistrationUI } from './registration-ui.js';
 import { createBoardController } from './board-controller.js';
 import { fitText } from './typography.js';
 import { createPopup } from './popup.js';
-
 const board = document.getElementById('board');
 const ui = {
     add: document.getElementById('addSticker'),
@@ -15,7 +15,6 @@ const ui = {
 };
 const controller = createBoardController(board, ui);
 const openPopup = createPopup(document.getElementById('boardPopup'));
-
 ui.add.addEventListener('click', controller.createSticker);
 ui.newBoard.addEventListener('click', async () => {
     const title = await openPopup({
@@ -50,4 +49,7 @@ ui.openBoard.addEventListener('click', async () => {
 window.addEventListener('resize', () => {
     board.querySelectorAll('.sticker-text, .input').forEach(element => fitText(element));
 });
+
+initializeRegistrationUI();
+
 await controller.initialize();

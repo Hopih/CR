@@ -1,123 +1,26 @@
 ﻿using System.Net;
-using System.Text;
-using System.Text.Json;
-using CodeJam;
 using HttpListenerStepByStep;
-using HttpListenerStepByStep.Data;
 using HttpListenerStepByStep.Http;
 
+var origin = Environment.GetEnvironmentVariable("BOARD_ORIGIN") 
+             ?? "http://localhost:5000";
+
 using var httpListener = new HttpListener();
+using var quotes = new QuotesApiClient();
+var router = RouterExtensions.CreateRouterAndMap(quotes);
+var processor = new RequestProcessor(router,
+    new StaticFileHandler(Path.Combine(AppContext.BaseDirectory, "public")));
 
-var connectionString = Environment.GetEnvironmentVariable("BOARD_DB_CONNECTION")
-    ?? "Host=localhost;Port=5432;Database=my_miro;Username=postgres;Password=postgres";
-var boardRepository = new BoardRepository(connectionString);
-var stickerRepository = new StickerRepository(connectionString);
-var boardApi = new BoardApiHandler(boardRepository, stickerRepository);
-var quotesClient = new QuotesApiClient();
+using var listener = new HttpListener();
 
-httpListener.Prefixes.Add("http://localhost:5000/");
-httpListener.Start();
+listener.Prefixes.Add(origin.TrimEnd('/') + "/");
+listener.Start();
 
+Console.WriteLine(origin);
 
-while (httpListener.IsListening)
+while (listener.IsListening)
 {
-    var context = await httpListener.GetContextAsync();
-    _ = Task.Run(async () =>
-    {
-        try
-        {
-            var path = context.Request.Url?.AbsolutePath ?? "/";
-            if (path == "/api" || path.StartsWith("/api/", StringComparison.Ordinal))
-            {
-                await boardApi.HandleAsync(context, CancellationToken.None);
-            }
-            
-            else if (path == "/quote/random")
-            {
-                var result = await quotesClient.GetRandomQuoteAsync(CancellationToken.None);
-                context.Response.ContentType = "application/json; charset=utf-8";
-                context.Response.StatusCode = 200;
-                await context.Response.OutputStream.WriteAsync(
-                    Encoding.UTF8.GetBytes(JsonSerializer.Serialize(result, new JsonSerializerOptions()
-                    {
-                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-                    })));
-            }
-            else
-            {
-                await ShowStatic(context);
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.Error.WriteLine(ex.ToDiagnosticString());
-            // Ошибка записи клиенту тоже возможна, если он закрыл соединение.
-            try
-            {
-                await ApiSupport.WriteAsync(context.Response, 500,
-                    new { error = new { code = "server_error", message = "Ошибка сервера" } });
-            }
-            catch (Exception writeError)
-            {
-                Console.Error.WriteLine(writeError.Message);
-            }
-        }
-        finally
-        {
-            context.Response.Close();
-        }
-        
-    });
-}
-
-httpListener.Stop();
-httpListener.Close();
-quotesClient.Dispose();
-return;
-
-async Task ShowStatic(HttpListenerContext context, CancellationToken ctx = default)
-{
-    var relative = context.Request.Url?.LocalPath.TrimStart('/') ?? "";
-    if (relative is "" or "index")
-    {
-        relative = "index.html";
-    }
-
-    var root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "public"));
-    var target = Path.GetFullPath(Path.Combine(root, relative));
-    var rootPrefix = root + Path.DirectorySeparatorChar;
-    
-    var comparison = OperatingSystem.IsWindows()
-        ? StringComparison.OrdinalIgnoreCase 
-        : StringComparison.Ordinal;
-    
-    if (!target.StartsWith(rootPrefix, comparison) || !File.Exists(target))
-    {
-        await Show404(context, ctx);
-        return;
-    }
-    await ShowFile(target, context, ctx);
-}
-    
-async Task Show404(HttpListenerContext context, CancellationToken ctx)
-{
-    context.Response.ContentType = "text/plain; charset=utf-8";
-    context.Response.StatusCode = 404;
-    await context.Response.OutputStream.WriteAsync(Encoding.UTF8.GetBytes("Нужная вам страница не найдена!"), ctx);
-}
-
-async Task ShowFile(string path, HttpListenerContext context, CancellationToken ctx)
-{
-    context.Response.StatusCode = 200;
-    context.Response.ContentType = Path.GetExtension(path) switch
-    {
-        ".js" => "application/javascript; charset=utf-8",
-        ".css" => "text/css; charset=utf-8",
-        ".html" => "text/html; charset=utf-8",
-        ".svg" => "image/svg+xml; charset=utf-8",
-        _ => "text/plain; charset=utf-8"
-    };
-    var file = await File.ReadAllBytesAsync(path, ctx);
-    await context.Response.OutputStream.WriteAsync(file, ctx);
+    var context = await listener.GetContextAsync();
+    _ = Task.Run(() => processor.HandleAsync(context, CancellationToken.None));
 }
 

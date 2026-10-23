@@ -3,7 +3,7 @@ html, body { margin: 0; height: 100%; }
 body {
     font-family: Arial, sans-serif;
     display: grid;
-    grid-template-rows: 48px minmax(0, 1fr) 40px;
+    grid-template-rows: auto minmax(0, 1fr) auto;
 }
 header, footer {
     display: flex;
@@ -86,7 +86,6 @@ main { min-height: 0; min-width: 0; }
     background: gray;
     cursor: nwse-resize;
 }
-
 .sticker-delete {
     position: absolute;
     right: 5px;
@@ -99,14 +98,10 @@ main { min-height: 0; min-width: 0; }
 .sticker[data-busy="true"] { opacity: .65; cursor: wait; }
 .sticker[data-busy="true"] .resize-handle { cursor: wait; }
 .board-status { font-size: 14px; }
-
-
-body { grid-template-rows: auto minmax(0, 1fr) auto; }
 header { flex-wrap: wrap; gap: 8px; padding: 8px 12px; }
 header h2 { margin-right: 8px; }
 header select { max-width: 240px; }
 footer { min-height: 40px; padding: 8px 12px; text-align: center; }
-
 .board-popup {
     width: min(380px, calc(100vw - 32px));
     padding: 24px;
@@ -141,3 +136,27 @@ footer { min-height: 40px; padding: 8px 12px; text-align: center; }
 .popup-submit { background: #397583; color: white; }
 .popup-submit.popup-danger { background: #b22f38; }
 .popup-actions button:focus-visible { outline: 2px solid #397583; outline-offset: 3px; }
+/* Новые области шапки; цвета и стили popup остаются общими. */
+.app-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px 16px;
+}
+.user-zone { grid-column: 1; grid-row: 1; justify-self: start; }
+.auth-zone { grid-column: 2; grid-row: 1; justify-self: end; }
+.board-controls {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+}
+.auth-popup .popup-field + .popup-field { margin-top: 14px; }
+.popup-actions button:disabled { opacity: .55; cursor: wait; }
+[hidden] { display: none !important; }
+@media (max-width: 520px) {
+    .user-zone { overflow-wrap: anywhere; }
+    .auth-zone { display: flex; flex-wrap: wrap; justify-content: flex-end; }
+}

@@ -1,6 +1,6 @@
 using System.Net;
 using System.Text.Json;
-using HttpListenerStepByStep.Models;
+using FluentValidation;
 
 namespace HttpListenerStepByStep.Http;
 
@@ -10,7 +10,7 @@ public static class ApiSupport
         new(JsonSerializerDefaults.Web);
 
     public static async Task WriteAsync(
-        HttpListenerResponse response, int status,
+        this HttpListenerResponse response, int status,
         object? value = null, CancellationToken ct = default)
     {
         response.StatusCode = status;
@@ -24,7 +24,7 @@ public static class ApiSupport
     }
 
     public static async Task<T> ReadAsync<T>(
-        HttpListenerRequest request, CancellationToken ct)
+        this HttpListenerRequest request, CancellationToken ct)
     {
         var mediaType = request.ContentType?.Split(';')[0].Trim();
         if (!string.Equals(mediaType, "application/json",
@@ -51,19 +51,11 @@ public static class ApiSupport
         return id;
     }
 
-    public static void Validate(this CreateBoardRequest value)
+    public static void Validate<T>(this T value, IValidator<T> validator)
     {
-        if (string.IsNullOrWhiteSpace(value.Title) || value.Title.Length > 120)
+        var result = validator.Validate(value);
+        if (!result.IsValid)
             throw new ApiException(400, "validation_error",
-                "Заголовок должен содержать от 1 до 120 символов");
-    }
-
-    public static void Validate(this SaveStickerRequest value)
-    {
-        if (value.Text is null || value.Text.Length > 2000 ||
-            value.X is < 0 or > 10000 || value.Y is < 0 or > 10000 ||
-            value.Width is < 80 or > 10000 || value.Height is < 80 or > 10000)
-            throw new ApiException(400, "validation_error",
-                "Проверьте текст, координаты и размеры стикера");
+                string.Join("; ", result.Errors.Select(x => x.ErrorMessage).Distinct()));
     }
 }

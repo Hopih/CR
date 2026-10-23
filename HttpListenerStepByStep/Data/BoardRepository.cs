@@ -88,20 +88,18 @@ public class BoardRepository(string connectionString)
     public async Task<bool> DeleteAsync(Guid id, CancellationToken ct)
     {
         await using var connection = await OpenConnectionAsync(ct);
-        await using var command = new NpgsqlCommand(
-            "public.delete_board", connection)
+        await using var command = new NpgsqlCommand("public.delete_board", connection)
         {
             CommandType = CommandType.StoredProcedure
         };
+        
         command.Parameters.AddWithValue("p_board_id", NpgsqlDbType.Uuid, id);
-        command.Parameters.Add(new NpgsqlParameter(
-            "p_found", NpgsqlDbType.Boolean)
+        command.Parameters.Add(new NpgsqlParameter("p_found", NpgsqlDbType.Boolean)
         {
             Direction = ParameterDirection.Output
         });
         
-        return await command.ExecuteScalarAsync(ct) is bool found
-            ? found
-            : throw new InvalidOperationException("Не получен результат удаления");
+        return (bool)(await command.ExecuteScalarAsync(ct)
+                      ?? throw new InvalidOperationException("Нет результата удаления"));
     }
 }

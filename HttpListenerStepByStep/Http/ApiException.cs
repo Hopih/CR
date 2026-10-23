@@ -1,6 +1,6 @@
 namespace HttpListenerStepByStep.Http;
 
-public sealed class ApiException(int status, string code, string message)
+public sealed class ApiException(int status, string code, string? message)
     : Exception(message)
 {
     public int Status { get; } = status;
