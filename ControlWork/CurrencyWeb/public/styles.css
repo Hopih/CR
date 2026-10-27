@@ -1,0 +1,18 @@
+:root { font-family: system-ui, sans-serif; color: #203343; background: #f3f6f8; }
+body { margin: 0; }
+main { max-width: 960px; margin: 48px auto; padding: 0 24px; }
+header { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
+h1 { margin: 4px 0 16px; font-size: clamp(28px, 5vw, 40px); }
+.eyebrow { color: #4d6879; font-size: 13px; margin: 0; }
+button { border: 0; border-radius: 8px; background: #176452; color: white; padding: 12px 20px; font: inherit; cursor: pointer; }
+button:disabled { opacity: .6; cursor: wait; }
+button:focus-visible, a:focus-visible { outline: 3px solid #bc7918; outline-offset: 4px; }
+#status { min-height: 24px; }
+.table-wrap { overflow-x: auto; border: 1px solid #dce4e9; border-radius: 12px; background: white; }
+table { width: 100%; border-collapse: collapse; }
+caption { text-align: left; padding: 20px; font-weight: 600; }
+th, td { padding: 13px 20px; text-align: left; border-top: 1px solid #e8edf0; }
+th { background: #edf4f2; font-size: 14px; }
+td:nth-child(3), td:nth-child(4), th:nth-child(3), th:nth-child(4) { text-align: right; font-variant-numeric: tabular-nums; }
+footer { margin: 24px 0; color: #4d6879; font-size: 14px; line-height: 1.7; }
+a { color: #176452; }

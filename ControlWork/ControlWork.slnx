@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="CurrencyWeb/CurrencyWeb.csproj" />
+  <Project Path="NumberGuessServer/NumberGuessServer.csproj" />
+  <Project Path="NumberGuessClient/NumberGuessClient.csproj" />
+</Solution>
