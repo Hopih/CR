@@ -1,4 +1,9 @@
 <Solution>
+  <Folder Name="/Задания/">
+    <File Path="ЗАДАНИЯ.md" />
+    <File Path="ПОДСКАЗКИ.md" />
+    <File Path="README.md" />
+  </Folder>
   <Project Path="CurrencyWeb/CurrencyWeb.csproj" />
   <Project Path="NumberGuessServer/NumberGuessServer.csproj" />
   <Project Path="NumberGuessClient/NumberGuessClient.csproj" />
