@@ -36,7 +36,7 @@ def start(project, port):
 
 
 def request(path, method="GET"):
-    req = urllib.request.Request("http://localhost:8080" + path, method=method)
+    req = urllib.request.Request("http://localhost:8081" + path, method=method)
     try:
         response = urllib.request.urlopen(req, timeout=20)
     except urllib.error.HTTPError as error:
@@ -51,7 +51,7 @@ def exchange(stream, command):
 
 
 try:
-    start("CurrencyWeb", 8080)
+    start("CurrencyWeb", 8081)
     start("NumberGuessServer", 5050)
     for path in ("/", "/index.html", "/app.js", "/styles.css"):
         status, _, body = request(path)
