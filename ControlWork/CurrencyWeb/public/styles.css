@@ -14,5 +14,11 @@ caption { text-align: left; padding: 20px; font-weight: 600; }
 th, td { padding: 13px 20px; text-align: left; border-top: 1px solid #e8edf0; }
 th { background: #edf4f2; font-size: 14px; }
 td:nth-child(3), td:nth-child(4), th:nth-child(3), th:nth-child(4) { text-align: right; font-variant-numeric: tabular-nums; }
+/* Кнопки в заголовках выглядят как обычный текст заголовка, а не как зелёная кнопка «Обновить» */
+th .sort { background: none; color: inherit; padding: 0; font-weight: inherit; }
 footer { margin: 24px 0; color: #4d6879; font-size: 14px; line-height: 1.7; }
 a { color: #176452; }
+.convert-form { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 16px 0 4px; }
+.convert-form input, .convert-form select { font: inherit; padding: 10px 12px; border: 1px solid #c5d3db; border-radius: 8px; background: white; color: #203343; }
+.convert-form input { width: 120px; }
+.convert-result { min-height: 28px; font-size: 20px; font-weight: 600; }

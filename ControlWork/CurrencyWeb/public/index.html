@@ -14,11 +14,20 @@
       <button id="refresh" type="button">Обновить</button>
     </header>
     <p>Официальные курсы к российскому рублю. Значение указано за номинал валюты.</p>
+    <form id="convert-form" class="convert-form">
+      <input id="amount" value="100" aria-label="Сумма">   <!-- сумма -->
+      <select id="from" aria-label="Из валюты"></select>   <!-- из валюты: пустой, заполнит JS -->
+      <span>→</span>
+      <select id="to" aria-label="В валюту"></select>      <!-- в валюту: пустой, заполнит JS -->
+      <button type="submit">Конвертировать</button>
+    </form>
+    <p id="convert-result" class="convert-result" aria-live="polite"></p>   <!-- сюда JS напишет результат или ошибку -->
     <p id="status" role="status" aria-live="polite">Загрузка…</p>
     <div class="table-wrap">
       <table>
         <caption id="rates-date">Курсы валют</caption>
-        <thead><tr><th scope="col">Код</th><th scope="col">Валюта</th><th scope="col">Номинал</th><th scope="col">Курс, ₽</th></tr></thead>
+        <!-- Кнопки внутри заголовков: сами получают фокус по Tab и нажимаются Enter. data-sort — что передать серверу в ?sort= -->
+        <thead><tr><th scope="col"><button type="button" class="sort" data-sort="code">Код<span class="arrow"></span></button></th><th scope="col"><button type="button" class="sort" data-sort="name">Валюта<span class="arrow"></span></button></th><th scope="col">Номинал</th><th scope="col"><button type="button" class="sort" data-sort="rate">Курс, ₽<span class="arrow"></span></button></th></tr></thead>
         <tbody id="rates"></tbody>
       </table>
     </div>

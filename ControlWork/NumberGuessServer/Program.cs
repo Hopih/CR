@@ -27,8 +27,10 @@ static async Task HandleClientAsync(Socket socket, CancellationToken cancellatio
     using var clientSocket = socket;
     var buffer = new byte[512];
     var messageBytes = new List<byte>();
+    GameSession.clients.Add(socket , 0);
+    GameSession.copyClients.Add(socket , 0);
     var game = new GameSession();
-
+    
     try
     {
         while (true)
@@ -49,7 +51,7 @@ static async Task HandleClientAsync(Socket socket, CancellationToken cancellatio
                 // Декодируем только полное сообщение: UTF-8 символ тоже может прийти частями.
                 var response = tooLong
                     ? "ERROR LINE_TOO_LONG"
-                    : game.HandleCommand(Encoding.UTF8.GetString(messageBytes.ToArray()).TrimEnd('\r'));
+                    : game.HandleCommand(Encoding.UTF8.GetString(messageBytes.ToArray()).TrimEnd('\r') , socket);
                 messageBytes.Clear();
                 var responseBytes = Encoding.UTF8.GetBytes(response + "\n");
 

@@ -24,7 +24,7 @@ public sealed class RatesService(HttpClient httpClient)
             // Даже неудачные запросы не повторяем чаще одного раза в минуту.
             _nextRequestAt = DateTimeOffset.UtcNow.AddMinutes(1);
             var data = await httpClient.GetFromJsonAsync<ProviderRates>(ApiUrl)
-                ?? throw new HttpRequestException("Источник вернул пустой ответ.");
+                       ?? throw new HttpRequestException("Источник вернул пустой ответ.");
 
             if (data.Valute.Count == 0 || data.Valute.Values.Any(c => c.Nominal <= 0 || c.Value <= 0))
                 throw new HttpRequestException("Источник вернул некорректные курсы.");
@@ -37,6 +37,22 @@ public sealed class RatesService(HttpClient httpClient)
         {
             _cacheLock.Release();
         }
+    }
+
+    public async Task<RatesResponse> SearchRatesAsync(string? search)
+    {
+        // Сначала берём курсы из кеша (к ЦБ не ходим, если кеш свежий), фильтруем уже потом.
+        var rates = await GetRatesAsync();
+        if (string.IsNullOrWhiteSpace(search)) return rates;
+
+        var text = search.Trim();
+        var found = rates.Currencies
+            .Where(c => c.CharCode.Contains(text, StringComparison.OrdinalIgnoreCase)
+                     || c.Name.Contains(text, StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+
+        // Новый объект только для ответа — кеш остаётся со всеми валютами.
+        return new RatesResponse(rates.Date, found);
     }
 }
 

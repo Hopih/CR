@@ -58,6 +58,46 @@ try
         }
         if (lineEnd > 1024) throw new InvalidDataException("Слишком длинный ответ сервера.");
         var response = Encoding.UTF8.GetString(pendingBytes.GetRange(0, lineEnd).ToArray()).TrimEnd('\r');
+
+        switch (response)
+        {
+            case "STATUS NOT_STARTED":
+                Console.WriteLine("Игра не начата");
+                break;
+            case "STATUS WON":
+                Console.WriteLine("Последняя игра выйграна");
+                break;
+            case "ERROR INVALID_ARGUMENTS":
+            {
+                Console.WriteLine("Неправильные аргументы");
+                break;
+            }
+            case string s when s.StartsWith("STATUS PLAYING "):
+            {
+                var range = s.Substring("STATUS PLAYING ".Length).Split('-');
+                Console.WriteLine($"{range[0]}-{range[1]}");
+                break;
+            }
+
+            case string s when s.StartsWith("WIN "):
+            {
+                var num = s.Substring("WIN ".Length).Trim();
+                Console.WriteLine("Вы выйграли число попыток" + num);
+                break;
+            }
+            case string s when s.StartsWith("RECORD"):
+            {
+                var num = s.Substring("RECORD ".Length).Trim();
+                if (num == "NONE")
+                {
+                    Console.WriteLine("Еще никто не выйгрывал");
+                    break;
+                }
+                Console.WriteLine("Лучший результат " + num);
+                break;
+            }
+        }
+        
         pendingBytes.RemoveRange(0, lineEnd + 1);
 
         Console.WriteLine(response switch
@@ -65,7 +105,6 @@ try
             "OK" => "Число загадано. Введите попытку от 1 до 100.",
             "GREATER" => "Загаданное число больше.",
             "LESS" => "Загаданное число меньше.",
-            "WIN" => "Вы угадали! Для новой игры введите start.",
             "BYE" => "До встречи!",
             "ERROR NOT_STARTED" => "Сначала начните игру командой start.",
             "ERROR INVALID_NUMBER" => "Нужно целое число от 1 до 100.",
